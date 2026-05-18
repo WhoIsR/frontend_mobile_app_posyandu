@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
+import 'core/api_client.dart';
+import 'core/token_store.dart';
+
 void main() {
-  runApp(const PosyanduApp());
+  runApp(PosyanduApp());
 }
 
-enum UserRole { kader, bidan }
+class PosyanduApp extends StatefulWidget {
+  PosyanduApp({super.key, PosyanduApi? api, TokenStore? tokenStore})
+    : api = api ?? HttpPosyanduApi(),
+      tokenStore = tokenStore ?? SharedPreferencesTokenStore();
 
-class PosyanduApp extends StatelessWidget {
-  const PosyanduApp({super.key, this.initialRole});
-
-  final UserRole? initialRole;
+  final PosyanduApi api;
+  final TokenStore tokenStore;
 
   static const paper = Color(0xFFF8F4EC);
   static const surface = Color(0xFFFFFDF8);
@@ -25,61 +29,179 @@ class PosyanduApp extends StatelessWidget {
   static const reviewSoft = Color(0xFFF0D8D1);
 
   @override
+  State<PosyanduApp> createState() => _PosyanduAppState();
+}
+
+class _PosyanduAppState extends State<PosyanduApp> {
+  AppUser? _user;
+  bool _booting = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final token = await widget.tokenStore.read();
+    if (token != null && widget.api is HttpPosyanduApi) {
+      (widget.api as HttpPosyanduApi).token = token;
+    }
+    if (token == null) {
+      setState(() => _booting = false);
+      return;
+    }
+    try {
+      final user = await widget.api.me();
+      if (!mounted) return;
+      setState(() {
+        _user = user;
+        _booting = false;
+      });
+    } catch (_) {
+      await widget.tokenStore.clear();
+      if (!mounted) return;
+      setState(() => _booting = false);
+    }
+  }
+
+  Future<void> _handleLogin(AuthSession session) async {
+    await widget.tokenStore.write(session.token);
+    if (!mounted) return;
+    setState(() => _user = session.user);
+  }
+
+  Future<void> _logout() async {
+    try {
+      await widget.api.logout();
+    } catch (_) {
+      // Logout lokal tetap dilakukan agar kader/bidan tidak tertahan token lama.
+    }
+    await widget.tokenStore.clear();
+    if (!mounted) return;
+    setState(() => _user = null);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Posyandu Desa',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: paper,
-        colorScheme:
-            ColorScheme.fromSeed(
-              seedColor: primary,
-              brightness: Brightness.light,
-            ).copyWith(
-              primary: primary,
-              secondary: bidanBlue,
-              surface: surface,
-              outline: line,
-            ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: surface,
-          foregroundColor: ink,
-          elevation: 0,
-          centerTitle: false,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: CardThemeData(
-          color: surface,
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: const BorderSide(color: line),
+      theme: _theme(),
+      home: _booting
+          ? const _BootScreen()
+          : _user == null
+          ? LoginScreen(api: widget.api, onLoggedIn: _handleLogin)
+          : RoleShell(api: widget.api, user: _user!, onLogout: _logout),
+    );
+  }
+
+  ThemeData _theme() {
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: PosyanduApp.paper,
+      colorScheme:
+          ColorScheme.fromSeed(
+            seedColor: PosyanduApp.primary,
+            brightness: Brightness.light,
+          ).copyWith(
+            primary: PosyanduApp.primary,
+            secondary: PosyanduApp.bidanBlue,
+            surface: PosyanduApp.surface,
+            outline: PosyanduApp.line,
           ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: surface,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: line),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: primary, width: 2),
-          ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: PosyanduApp.surface,
+        foregroundColor: PosyanduApp.ink,
+        elevation: 0,
+        centerTitle: false,
+        surfaceTintColor: Colors.transparent,
+      ),
+      cardTheme: CardThemeData(
+        color: PosyanduApp.surface,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: PosyanduApp.line),
         ),
       ),
-      home: initialRole == null
-          ? const LoginScreen()
-          : RoleShell(role: initialRole!),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: PosyanduApp.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: PosyanduApp.line),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: PosyanduApp.primary, width: 2),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          backgroundColor: PosyanduApp.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
     );
   }
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class _BootScreen extends StatelessWidget {
+  const _BootScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key, required this.api, required this.onLoggedIn});
+
+  final PosyanduApi api;
+  final ValueChanged<AuthSession> onLoggedIn;
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _nikController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _nikController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final session = await widget.api.login(
+        _nikController.text.trim(),
+        _passwordController.text,
+      );
+      widget.onLoggedIn(session);
+    } on ApiException catch (error) {
+      setState(() => _error = error.message);
+    } catch (_) {
+      setState(() => _error = 'Koneksi ke server belum berhasil. Coba lagi sebentar.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,26 +224,27 @@ class LoginScreen extends StatelessWidget {
               style: TextStyle(color: PosyanduApp.inkSoft, height: 1.4),
             ),
             const SizedBox(height: 32),
-            const TextField(
+            TextField(
+              key: const Key('nikField'),
+              controller: _nikController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'NIK / NIP'),
+              decoration: const InputDecoration(labelText: 'NIK / NIP'),
             ),
             const SizedBox(height: 16),
-            const TextField(
+            TextField(
+              key: const Key('passwordField'),
+              controller: _passwordController,
               obscureText: true,
-              decoration: InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              _InlineMessage(text: _error!, isError: true),
+            ],
             const SizedBox(height: 24),
             FilledButton(
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: PosyanduApp.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {},
-              child: const Text('Masuk'),
+              onPressed: _loading ? null : _submit,
+              child: Text(_loading ? 'Memeriksa...' : 'Masuk'),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -135,214 +258,497 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-class RoleShell extends StatelessWidget {
-  const RoleShell({super.key, required this.role});
+class RoleShell extends StatefulWidget {
+  const RoleShell({
+    super.key,
+    required this.api,
+    required this.user,
+    required this.onLogout,
+  });
 
-  final UserRole role;
+  final PosyanduApi api;
+  final AppUser user;
+  final VoidCallback onLogout;
+
+  @override
+  State<RoleShell> createState() => _RoleShellState();
+}
+
+class _RoleShellState extends State<RoleShell> {
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
-    final isKader = role == UserRole.kader;
+    final isKader = widget.user.role == UserRole.kader;
+    final pages = isKader
+        ? [
+            KaderDashboard(api: widget.api, user: widget.user),
+            KaderDashboard(api: widget.api, user: widget.user, focus: 'sesi'),
+            KaderDashboard(api: widget.api, user: widget.user, focus: 'balita'),
+            KaderDashboard(api: widget.api, user: widget.user, focus: 'skrining'),
+            KaderDashboard(api: widget.api, user: widget.user, focus: 'notifikasi'),
+          ]
+        : [
+            BidanDashboard(api: widget.api, user: widget.user),
+            BidanDashboard(api: widget.api, user: widget.user, focus: 'rujukan'),
+            BidanDashboard(api: widget.api, user: widget.user, focus: 'pmt'),
+            BidanDashboard(api: widget.api, user: widget.user, focus: 'laporan'),
+            BidanDashboard(api: widget.api, user: widget.user, focus: 'notifikasi'),
+          ];
     return Scaffold(
       appBar: AppBar(
         title: Text(isKader ? 'Beranda Kader' : 'Beranda Bidan'),
+        actions: [
+          IconButton(
+            tooltip: 'Keluar',
+            onPressed: widget.onLogout,
+            icon: const Icon(Icons.logout_outlined),
+          ),
+        ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, color: PosyanduApp.line),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        destinations: isKader
-            ? const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  label: 'Beranda',
+        selectedIndex: _index,
+        onDestinationSelected: (value) => setState(() => _index = value),
+        destinations: isKader ? _kaderDestinations : _bidanDestinations,
+      ),
+      body: SafeArea(child: pages[_index]),
+    );
+  }
+}
+
+const _kaderDestinations = [
+  NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
+  NavigationDestination(icon: Icon(Icons.event_available_outlined), label: 'Sesi'),
+  NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
+  NavigationDestination(icon: Icon(Icons.fact_check_outlined), label: 'Skrining'),
+  NavigationDestination(icon: Icon(Icons.notifications_outlined), label: 'Notifikasi'),
+];
+
+const _bidanDestinations = [
+  NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
+  NavigationDestination(icon: Icon(Icons.assignment_late_outlined), label: 'Rujukan'),
+  NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'PMT'),
+  NavigationDestination(icon: Icon(Icons.description_outlined), label: 'Laporan'),
+  NavigationDestination(icon: Icon(Icons.notifications_outlined), label: 'Notifikasi'),
+];
+
+class KaderDashboard extends StatefulWidget {
+  const KaderDashboard({
+    super.key,
+    required this.api,
+    required this.user,
+    this.focus,
+  });
+
+  final PosyanduApi api;
+  final AppUser user;
+  final String? focus;
+
+  @override
+  State<KaderDashboard> createState() => _KaderDashboardState();
+}
+
+class _KaderDashboardState extends State<KaderDashboard> {
+  final _searchController = TextEditingController();
+  final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
+  Map<String, dynamic>? _session;
+  List<Map<String, dynamic>> _children = [];
+  List<Map<String, dynamic>> _screening = [];
+  List<Map<String, dynamic>> _notifications = [];
+  Map<String, dynamic>? _lastMeasurement;
+  bool _loading = true;
+  bool _saving = false;
+  String? _message;
+  bool _messageIsError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _weightController.dispose();
+    _heightController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final session = await widget.api.getActiveSession();
+      final children = await widget.api.getChildren();
+      final notifications = await widget.api.getNotifications();
+      final screening = session == null
+          ? const <Map<String, dynamic>>[]
+          : (await widget.api.getScreening(_id(session))).data;
+      if (!mounted) return;
+      setState(() {
+        _session = session;
+        _children = children.data;
+        _screening = screening;
+        _notifications = notifications.data;
+        _loading = false;
+      });
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _search() async {
+    try {
+      final result = await widget.api.getChildren(search: _searchController.text);
+      if (!mounted) return;
+      setState(() => _children = result.data);
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+    }
+  }
+
+  Future<void> _saveMeasurement() async {
+    if (_session == null || _children.isEmpty) {
+      _showMessage('Sesi aktif atau data balita belum tersedia.', isError: true);
+      return;
+    }
+    final weight = double.tryParse(_weightController.text.replaceAll(',', '.'));
+    final height = double.tryParse(_heightController.text.replaceAll(',', '.'));
+    if (weight == null || height == null) {
+      _showMessage('Isi berat badan dan tinggi badan dengan angka.', isError: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final saved = await widget.api.storeMeasurement(
+        sessionId: _id(_session!),
+        childId: _id(_children.first),
+        weight: weight,
+        height: height,
+      );
+      final screening = (await widget.api.getScreening(_id(_session!))).data;
+      if (!mounted) return;
+      setState(() {
+        _lastMeasurement = saved;
+        _screening = screening;
+      });
+      final failed = saved['status_prediksi'] == 'gagal';
+      _showMessage(
+        failed
+            ? 'Pengukuran tersimpan. Prediksi dapat dicoba ulang saat koneksi stabil.'
+            : 'Pengukuran tersimpan. Hasil skrining diperbarui.',
+        isError: failed,
+      );
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _retryPrediction() async {
+    final measurementId = _lastMeasurement == null ? null : _id(_lastMeasurement!);
+    if (measurementId == null) return;
+    try {
+      final saved = await widget.api.retryPrediction(measurementId);
+      final screening = _session == null
+          ? const <Map<String, dynamic>>[]
+          : (await widget.api.getScreening(_id(_session!))).data;
+      if (!mounted) return;
+      setState(() {
+        _lastMeasurement = saved;
+        _screening = screening;
+      });
+      _showMessage('Prediksi berhasil dicoba ulang.');
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+    }
+  }
+
+  void _showMessage(String text, {bool isError = false}) {
+    if (!mounted) return;
+    setState(() {
+      _message = text;
+      _messageIsError = isError;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const _LoadingList();
+    }
+    final child = _children.isEmpty ? null : _children.first;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        key: const Key('kaderList'),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            'Selamat datang, ${widget.user.nama}',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Text('Posyandu aktif hari ini', style: TextStyle(color: PosyanduApp.inkSoft)),
+          const SizedBox(height: 16),
+          StatusPanel(
+            title: 'Sesi hari ini',
+            subtitle: _session == null
+                ? 'Belum ada sesi berjalan untuk Posyandu ini.'
+                : 'Sesi ${_dateText(_session!['tanggal'])} | Status ${_session!['status'] ?? '-'}',
+            accent: PosyanduApp.primary,
+            child: Text(widget.focus == 'sesi' ? 'Tarik ke bawah untuk memuat ulang sesi.' : 'Input Pengukuran'),
+          ),
+          const SizedBox(height: 16),
+          const SectionTitle('Cari balita'),
+          TextField(
+            controller: _searchController,
+            onSubmitted: (_) => _search(),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              labelText: 'Cari nama balita, ibu, atau NIK',
+              suffixIcon: IconButton(
+                tooltip: 'Cari',
+                onPressed: _search,
+                icon: const Icon(Icons.arrow_forward),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_children.isEmpty)
+            const EmptyState(text: 'Belum ada balita pada hasil pencarian.')
+          else
+            ..._children.take(3).map((row) => ChildRow(row: row)),
+          const SizedBox(height: 16),
+          const SectionTitle('Input pengukuran'),
+          MeasurementPanel(
+            child: child,
+            weightController: _weightController,
+            heightController: _heightController,
+            saving: _saving,
+            onSave: _saveMeasurement,
+          ),
+          if (_message != null) ...[
+            const SizedBox(height: 12),
+            _InlineMessage(text: _message!, isError: _messageIsError),
+          ],
+          if (_lastMeasurement?['status_prediksi'] == 'gagal') ...[
+            const SizedBox(height: 8),
+            const StatusBadge(
+              label: 'Prediksi gagal',
+              color: PosyanduApp.inkSoft,
+              softColor: PosyanduApp.line,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _retryPrediction,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba Lagi'),
+            ),
+          ],
+          const SizedBox(height: 16),
+          const SectionTitle('Hasil Skrining Hari Ini'),
+          if (_screening.isEmpty)
+            const EmptyState(text: 'Belum ada hasil skrining pada sesi ini.')
+          else
+            ..._screening.map((row) => ScreeningRow(row: row)),
+          const SizedBox(height: 16),
+          const SectionTitle('Notifikasi'),
+          if (_notifications.isEmpty)
+            const EmptyState(text: 'Belum ada notifikasi.')
+          else
+            ..._notifications.take(3).map((row) => NotificationRow(row: row)),
+        ],
+      ),
+    );
+  }
+}
+
+class BidanDashboard extends StatefulWidget {
+  const BidanDashboard({
+    super.key,
+    required this.api,
+    required this.user,
+    this.focus,
+  });
+
+  final PosyanduApi api;
+  final AppUser user;
+  final String? focus;
+
+  @override
+  State<BidanDashboard> createState() => _BidanDashboardState();
+}
+
+class _BidanDashboardState extends State<BidanDashboard> {
+  final _noteController = TextEditingController(text: 'Observasi dan pantau ulang.');
+  List<Map<String, dynamic>> _referrals = [];
+  List<Map<String, dynamic>> _pmt = [];
+  List<Map<String, dynamic>> _notifications = [];
+  bool _loading = true;
+  bool _savingValidation = false;
+  String _decision = 'observasi';
+  String? _message;
+  bool _messageIsError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final referrals = await widget.api.getReferrals();
+      final pmt = await widget.api.getPmt();
+      final notifications = await widget.api.getNotifications();
+      if (!mounted) return;
+      setState(() {
+        _referrals = referrals.data;
+        _pmt = pmt.data;
+        _notifications = notifications.data;
+        _loading = false;
+      });
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _validateReferral() async {
+    if (_referrals.isEmpty) {
+      _showMessage('Belum ada rujukan untuk divalidasi.', isError: true);
+      return;
+    }
+    setState(() => _savingValidation = true);
+    try {
+      await widget.api.validateReferral(
+        referralId: _id(_referrals.first),
+        decision: _decision,
+        note: _noteController.text.trim().isEmpty
+            ? 'Observasi dan pantau ulang.'
+            : _noteController.text.trim(),
+      );
+      _showMessage('Validasi tersimpan');
+      await _load();
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+    } finally {
+      if (mounted) setState(() => _savingValidation = false);
+    }
+  }
+
+  Future<void> _downloadReport(String type) async {
+    try {
+      final bytes = await widget.api.downloadReport(type: type);
+      _showMessage('PDF berhasil diminta (${bytes.lengthInBytes} byte).');
+    } catch (error) {
+      _showMessage(_errorText(error), isError: true);
+    }
+  }
+
+  void _showMessage(String text, {bool isError = false}) {
+    if (!mounted) return;
+    setState(() {
+      _message = text;
+      _messageIsError = isError;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const _LoadingList();
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            'Rujukan',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_referrals.isEmpty)
+            const EmptyState(text: 'Belum ada rujukan masuk.')
+          else
+            ..._referrals.take(4).map((row) => ReferralRow(row: row)),
+          const SizedBox(height: 16),
+          const SectionTitle('Validasi Medis'),
+          StatusPanel(
+            title: 'Keputusan',
+            subtitle: 'Observasi, konseling, PMT, rujuk puskesmas, atau cek ulang data.',
+            accent: PosyanduApp.bidanBlue,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _decision,
+                  decoration: const InputDecoration(labelText: 'Keputusan'),
+                  items: const [
+                    DropdownMenuItem(value: 'observasi', child: Text('Observasi')),
+                    DropdownMenuItem(value: 'konseling', child: Text('Konseling')),
+                    DropdownMenuItem(value: 'pmt', child: Text('PMT')),
+                    DropdownMenuItem(value: 'rujuk_puskesmas', child: Text('Rujuk Puskesmas')),
+                    DropdownMenuItem(value: 'cek_ulang_data', child: Text('Cek ulang data')),
+                  ],
+                  onChanged: (value) => setState(() => _decision = value ?? 'observasi'),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.event_available_outlined),
-                  label: 'Sesi',
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _noteController,
+                  minLines: 2,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Catatan bidan'),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.child_care_outlined),
-                  label: 'Balita',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.fact_check_outlined),
-                  label: 'Skrining',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.notifications_outlined),
-                  label: 'Notifikasi',
-                ),
-              ]
-            : const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  label: 'Beranda',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.assignment_late_outlined),
-                  label: 'Rujukan',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  label: 'PMT',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.description_outlined),
-                  label: 'Laporan',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.notifications_outlined),
-                  label: 'Notifikasi',
+                const SizedBox(height: 12),
+                FilledButton(
+                  key: const Key('validateButton'),
+                  onPressed: _savingValidation ? null : _validateReferral,
+                  child: Text(_savingValidation ? 'Menyimpan...' : 'Simpan Validasi'),
                 ),
               ],
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [isKader ? const KaderContent() : const BidanContent()],
-        ),
-      ),
-    );
-  }
-}
-
-class KaderContent extends StatelessWidget {
-  const KaderContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Selamat pagi, Bu Rini',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const Text(
-          'Posyandu Melati 03',
-          style: TextStyle(color: PosyanduApp.inkSoft),
-        ),
-        const SizedBox(height: 16),
-        const StatusPanel(
-          title: 'Sesi hari ini',
-          subtitle: 'Melati 03 - 18 Mei 2026 | 08.00-11.00 | Balai Desa',
-          accent: PosyanduApp.primary,
-          child: PrimaryAction(label: 'Input Pengukuran'),
-        ),
-        const SizedBox(height: 16),
-        const SectionTitle('Cari balita'),
-        const TextField(
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            labelText: 'Cari nama balita, ibu, atau NIK',
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        const ChildRow(
-          name: 'Raka Pratama',
-          meta: '31 bulan | Ibu: Wulan',
-          status: 'Input',
-        ),
-        const ChildRow(
-          name: 'Sari Wulandari',
-          meta: '28 bulan | Ibu: Sinta',
-          status: 'Tersimpan',
-        ),
-        const SizedBox(height: 16),
-        const SectionTitle('Input pengukuran'),
-        const MeasurementPanel(),
-        const SizedBox(height: 16),
-        const SectionTitle('Hasil Skrining Hari Ini'),
-        const ScreeningRow(
-          name: 'Raka Pratama',
-          badge: 'Perlu perhatian',
-          message:
-              'Pertumbuhan anak perlu diperhatikan. Data akan ditinjau tenaga kesehatan.',
-          color: PosyanduApp.attention,
-          softColor: PosyanduApp.attentionSoft,
-        ),
-        const ScreeningRow(
-          name: 'Nadia Putri',
-          badge: 'Prediksi gagal',
-          message:
-              'Pengukuran tersimpan. Prediksi dapat dicoba ulang saat koneksi stabil.',
-          color: PosyanduApp.inkSoft,
-          softColor: PosyanduApp.line,
-        ),
-        const SizedBox(height: 16),
-        const StatusPanel(
-          title: 'Notifikasi',
-          subtitle: 'PMT disetujui dan validasi selesai akan tampil di sini.',
-          accent: PosyanduApp.bidanBlue,
-          child: Text('Pengukuran tersimpan. Prediksi diproses di belakang.'),
-        ),
-      ],
-    );
-  }
-}
-
-class BidanContent extends StatelessWidget {
-  const BidanContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Rujukan masuk',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        const TextField(
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            labelText: 'Cari balita atau nama ibu',
-          ),
-        ),
-        const SizedBox(height: 12),
-        const ReferralRow(
-          name: 'Raka Pratama',
-          risk: 'Perlu perhatian',
-          meta: 'Melati 03 | 31 bulan | TB 87.5',
-        ),
-        const ReferralRow(
-          name: 'Dina Lestari',
-          risk: 'Perlu ditinjau bidan',
-          meta: 'Melati 02 | 22 bulan | TB 76.0',
-        ),
-        const SizedBox(height: 16),
-        const SectionTitle('Validasi Medis'),
-        const StatusPanel(
-          title: 'Keputusan',
-          subtitle:
-              'Observasi, Konseling, PMT, Rujuk Puskesmas, atau Cek ulang data.',
-          accent: PosyanduApp.bidanBlue,
-          child: PrimaryAction(label: 'Simpan Validasi'),
-        ),
-        const SizedBox(height: 16),
-        const SectionTitle('PMT'),
-        const StockRow(
-          name: 'Biskuit Balita',
-          meta: 'Stok 18 dus | Minimum 10',
-          status: 'Aman',
-        ),
-        const StockRow(
-          name: 'Susu UHT',
-          meta: 'Stok 7 kotak | Minimum 10',
-          status: 'Stok menipis',
-        ),
-        const SizedBox(height: 16),
-        const SectionTitle('Laporan PDF'),
-        const ReportPicker(),
-      ],
+          if (_message != null) ...[
+            const SizedBox(height: 12),
+            _InlineMessage(text: _message!, isError: _messageIsError),
+          ],
+          const SizedBox(height: 16),
+          const SectionTitle('PMT'),
+          if (_pmt.isEmpty)
+            const EmptyState(text: 'Belum ada stok PMT.')
+          else
+            ..._pmt.map((row) => StockRow(row: row)),
+          const SizedBox(height: 16),
+          const SectionTitle('Laporan PDF'),
+          ReportPicker(onDownload: _downloadReport),
+          const SizedBox(height: 16),
+          const SectionTitle('Notifikasi'),
+          if (_notifications.isEmpty)
+            const EmptyState(text: 'Belum ada notifikasi.')
+          else
+            ..._notifications.take(3).map((row) => NotificationRow(row: row)),
+        ],
+      ),
     );
   }
 }
@@ -411,29 +817,54 @@ class StatusPanel extends StatelessWidget {
 }
 
 class MeasurementPanel extends StatelessWidget {
-  const MeasurementPanel({super.key});
+  const MeasurementPanel({
+    super.key,
+    required this.child,
+    required this.weightController,
+    required this.heightController,
+    required this.saving,
+    required this.onSave,
+  });
+
+  final Map<String, dynamic>? child;
+  final TextEditingController weightController;
+  final TextEditingController heightController;
+  final bool saving;
+  final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Raka Pratama\n31 bulan | Laki-laki | Ibu: Wulan'),
-            SizedBox(height: 12),
-            TextField(
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Berat badan (kg)'),
+            Text(
+              child == null
+                  ? 'Pilih balita dari hasil pencarian.'
+                  : '${child!['nama_balita']}\nIbu: ${child!['nama_ibu'] ?? '-'}',
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             TextField(
+              key: const Key('weightField'),
+              controller: weightController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Tinggi badan (cm)'),
+              decoration: const InputDecoration(labelText: 'Berat badan (kg)'),
             ),
-            SizedBox(height: 12),
-            PrimaryAction(label: 'Simpan & Lanjut'),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('heightField'),
+              controller: heightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Tinggi badan (cm)'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              key: const Key('saveMeasurementButton'),
+              onPressed: saving ? null : onSave,
+              child: Text(saving ? 'Menyimpan...' : 'Simpan & Lanjut'),
+            ),
           ],
         ),
       ),
@@ -442,24 +873,17 @@ class MeasurementPanel extends StatelessWidget {
 }
 
 class ChildRow extends StatelessWidget {
-  const ChildRow({
-    super.key,
-    required this.name,
-    required this.meta,
-    required this.status,
-  });
+  const ChildRow({super.key, required this.row});
 
-  final String name;
-  final String meta;
-  final String status;
+  final Map<String, dynamic> row;
 
   @override
   Widget build(BuildContext context) {
     return _ListTileFrame(
-      title: name,
-      subtitle: meta,
-      trailing: StatusBadge(
-        label: status,
+      title: row['nama_balita']?.toString() ?? '-',
+      subtitle: 'Ibu: ${row['nama_ibu'] ?? '-'}',
+      trailing: const StatusBadge(
+        label: 'Input',
         color: PosyanduApp.primary,
         softColor: PosyanduApp.primarySoft,
       ),
@@ -468,101 +892,109 @@ class ChildRow extends StatelessWidget {
 }
 
 class ScreeningRow extends StatelessWidget {
-  const ScreeningRow({
-    super.key,
-    required this.name,
-    required this.badge,
-    required this.message,
-    required this.color,
-    required this.softColor,
-  });
+  const ScreeningRow({super.key, required this.row});
 
-  final String name;
-  final String badge;
-  final String message;
-  final Color color;
-  final Color softColor;
+  final Map<String, dynamic> row;
 
   @override
   Widget build(BuildContext context) {
+    final failed = row['status_prediksi'] == 'gagal';
+    final risk = row['risk_level']?.toString();
+    final label = failed ? 'Prediksi gagal' : riskLabel(risk);
+    final colors = badgeColors(failed ? 'gagal' : risk);
     return _ListTileFrame(
-      title: name,
-      subtitle: message,
-      trailing: StatusBadge(label: badge, color: color, softColor: softColor),
+      title: row['nama_balita']?.toString() ?? '-',
+      subtitle: failed
+          ? 'Pengukuran tersimpan. Prediksi dapat dicoba ulang saat koneksi stabil.'
+          : riskMessage(risk),
+      trailing: StatusBadge(
+        label: label,
+        color: colors.$1,
+        softColor: colors.$2,
+      ),
     );
   }
 }
 
 class ReferralRow extends StatelessWidget {
-  const ReferralRow({
-    super.key,
-    required this.name,
-    required this.risk,
-    required this.meta,
-  });
+  const ReferralRow({super.key, required this.row});
 
-  final String name;
-  final String risk;
-  final String meta;
+  final Map<String, dynamic> row;
 
   @override
   Widget build(BuildContext context) {
+    final risk = row['risk_level']?.toString();
+    final colors = badgeColors(risk);
     return _ListTileFrame(
-      title: name,
-      subtitle: meta,
+      title: row['nama_balita']?.toString() ?? '-',
+      subtitle: 'Ibu: ${row['nama_ibu'] ?? '-'} | ${row['status_rujukan'] ?? '-'}',
       trailing: StatusBadge(
-        label: risk,
-        color: PosyanduApp.review,
-        softColor: PosyanduApp.reviewSoft,
+        label: riskLabel(risk),
+        color: colors.$1,
+        softColor: colors.$2,
       ),
     );
   }
 }
 
 class StockRow extends StatelessWidget {
-  const StockRow({
-    super.key,
-    required this.name,
-    required this.meta,
-    required this.status,
-  });
+  const StockRow({super.key, required this.row});
 
-  final String name;
-  final String meta;
-  final String status;
+  final Map<String, dynamic> row;
 
   @override
   Widget build(BuildContext context) {
+    final stock = _idValue(row['stok_saat_ini']);
+    final min = _idValue(row['stok_minimum']);
+    final low = stock < min;
     return _ListTileFrame(
-      title: name,
-      subtitle: meta,
+      title: row['nama_barang']?.toString() ?? '-',
+      subtitle: 'Stok $stock ${row['satuan'] ?? ''} | Minimum $min',
       trailing: StatusBadge(
-        label: status,
-        color: status == 'Aman' ? PosyanduApp.primary : PosyanduApp.attention,
-        softColor: status == 'Aman'
-            ? PosyanduApp.primarySoft
-            : PosyanduApp.attentionSoft,
+        label: low ? 'Stok menipis' : 'Aman',
+        color: low ? PosyanduApp.attention : PosyanduApp.primary,
+        softColor: low ? PosyanduApp.attentionSoft : PosyanduApp.primarySoft,
       ),
     );
   }
 }
 
-class ReportPicker extends StatelessWidget {
-  const ReportPicker({super.key});
+class NotificationRow extends StatelessWidget {
+  const NotificationRow({super.key, required this.row});
+
+  final Map<String, dynamic> row;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return _ListTileFrame(
+      title: row['judul']?.toString() ?? 'Notifikasi',
+      subtitle: row['pesan']?.toString() ?? '-',
+      trailing: const Icon(Icons.notifications_none),
+    );
+  }
+}
+
+class ReportPicker extends StatelessWidget {
+  const ReportPicker({super.key, required this.onDownload});
+
+  final Future<void> Function(String type) onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Prediksi Risiko'),
-            Text('Kehadiran Posyandu'),
-            Text('Distribusi PMT'),
-            SizedBox(height: 12),
-            PrimaryAction(label: 'Download PDF'),
+            const Text('Prediksi Risiko'),
+            const Text('Kehadiran Posyandu'),
+            const Text('Distribusi PMT'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => onDownload('prediksi'),
+              child: const Text('Download PDF'),
+            ),
           ],
         ),
       ),
@@ -588,25 +1020,20 @@ class _ListTileFrame extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: PosyanduApp.inkSoft),
-                  ),
+                  Text(subtitle, style: const TextStyle(color: PosyanduApp.inkSoft)),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            trailing,
+            Flexible(flex: 0, child: trailing),
           ],
         ),
       ),
@@ -625,9 +1052,9 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -648,7 +1075,7 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 28),
+      constraints: const BoxConstraints(minHeight: 28, maxWidth: 136),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: softColor,
@@ -656,6 +1083,8 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 2,
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w700,
@@ -666,21 +1095,107 @@ class StatusBadge extends StatelessWidget {
   }
 }
 
-class PrimaryAction extends StatelessWidget {
-  const PrimaryAction({super.key, required this.label});
+class EmptyState extends StatelessWidget {
+  const EmptyState({super.key, required this.text});
 
-  final String label;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        backgroundColor: PosyanduApp.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(text, style: const TextStyle(color: PosyanduApp.inkSoft)),
       ),
-      onPressed: () {},
-      child: Text(label),
     );
   }
 }
+
+class _InlineMessage extends StatelessWidget {
+  const _InlineMessage({required this.text, this.isError = false});
+
+  final String text;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isError ? PosyanduApp.reviewSoft : PosyanduApp.primarySoft,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isError ? PosyanduApp.review : PosyanduApp.primary,
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isError ? PosyanduApp.review : PosyanduApp.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingList extends StatelessWidget {
+  const _LoadingList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        StatusPanel(
+          title: 'Memuat data',
+          subtitle: 'Menghubungkan aplikasi dengan server Posyandu.',
+          accent: PosyanduApp.primary,
+          child: LinearProgressIndicator(),
+        ),
+      ],
+    );
+  }
+}
+
+String riskLabel(String? risk) {
+  return switch (risk) {
+    'rendah' => 'Risiko rendah',
+    'sedang' => 'Perlu perhatian',
+    'tinggi' => 'Perlu ditinjau bidan',
+    _ => 'Menunggu hasil',
+  };
+}
+
+String riskMessage(String? risk) {
+  return switch (risk) {
+    'rendah' => 'Pertumbuhan tercatat dalam risiko rendah.',
+    'sedang' => 'Pertumbuhan anak perlu diperhatikan. Data akan ditinjau tenaga kesehatan.',
+    'tinggi' => 'Data perlu ditinjau bidan. Ini skrining awal, bukan diagnosis.',
+    _ => 'Pengukuran tersimpan. Prediksi diproses di belakang.',
+  };
+}
+
+(Color, Color) badgeColors(String? risk) {
+  return switch (risk) {
+    'rendah' => (PosyanduApp.primary, PosyanduApp.primarySoft),
+    'sedang' => (PosyanduApp.attention, PosyanduApp.attentionSoft),
+    'tinggi' => (PosyanduApp.review, PosyanduApp.reviewSoft),
+    'gagal' => (PosyanduApp.inkSoft, PosyanduApp.line),
+    _ => (PosyanduApp.bidanBlue, PosyanduApp.primarySoft),
+  };
+}
+
+String _errorText(Object error) {
+  if (error is ApiException) return error.message;
+  return 'Koneksi ke server belum berhasil. Coba lagi sebentar.';
+}
+
+int _id(Map<String, dynamic> row) => _idValue(row['id']);
+
+int _idValue(Object? value) {
+  if (value is int) return value;
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _dateText(Object? value) => value?.toString() ?? '-';
