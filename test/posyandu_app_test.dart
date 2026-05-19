@@ -45,8 +45,7 @@ void main() {
     await _submitLogin(tester, nik: '1976010101010001');
 
     expect(find.text('Beranda Bidan'), findsOneWidget);
-    expect(find.text('Rujukan'), findsWidgets);
-    expect(find.text('Validasi Medis'), findsOneWidget);
+    expect(find.text('Ringkasan Bidan'), findsOneWidget);
     expect(find.text('PMT'), findsWidgets);
   });
 
@@ -125,6 +124,8 @@ void main() {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
     await tester.pumpAndSettle();
     await _submitLogin(tester);
+    await tester.tap(find.text('Rujukan').last);
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.byKey(const Key('validateButton')));
     await tester.tap(find.byKey(const Key('validateButton')));
@@ -139,6 +140,8 @@ void main() {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
     await tester.pumpAndSettle();
     await _submitLogin(tester, nik: '1976010101010001');
+    await tester.tap(find.text('Rujukan').last);
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.byKey(const Key('decisionDropdown')));
     await tester.tap(find.byKey(const Key('decisionDropdown')));
@@ -148,6 +151,8 @@ void main() {
     await tester.tap(find.byKey(const Key('validateButton')));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('PMT').last);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('distributePmtButton')));
     await tester.tap(find.byKey(const Key('distributePmtButton')));
     await tester.pumpAndSettle();
@@ -158,12 +163,37 @@ void main() {
     expect(find.text('Distribusi PMT tersimpan'), findsOneWidget);
   });
 
+  testWidgets('Bidan bottom nav menampilkan halaman sesuai tab', (tester) async {
+    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan)));
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '1976010101010001');
+
+    await tester.tap(find.text('PMT').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Biskuit Balita'), findsOneWidget);
+    expect(find.text('Validasi Medis'), findsNothing);
+    expect(find.text('Laporan PDF'), findsNothing);
+    expect(find.text('Rujukan masuk'), findsNothing);
+
+    await tester.tap(find.text('Laporan').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Laporan PDF'), findsOneWidget);
+    expect(find.text('Biskuit Balita'), findsNothing);
+    expect(find.text('Validasi Medis'), findsNothing);
+
+    await tester.tap(find.text('Notifikasi').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Rujukan masuk'), findsOneWidget);
+    expect(find.text('Laporan PDF'), findsNothing);
+    expect(find.text('Biskuit Balita'), findsNothing);
+  });
+
   testWidgets('Bidan bisa memilih tiga jenis laporan PDF', (tester) async {
     final bidan = FakeBidanRepository();
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
     await tester.pumpAndSettle();
     await _submitLogin(tester, nik: '1976010101010001');
-    await tester.tap(find.text('Laporan'));
+    await tester.tap(find.text('Laporan').last);
     await tester.pumpAndSettle();
 
     for (final type in ['prediksi', 'kehadiran', 'distribusi-pmt']) {

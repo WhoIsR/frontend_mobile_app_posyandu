@@ -47,25 +47,50 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     BidanDashboardState state,
     BidanDashboardData? data,
   ) {
-    final all = <String, List<Widget>>{
-      'rujukan': _referralSection(context, data),
-      'validasi': _validationSection(state),
-      'pmt': _pmtSection(state, data),
-      'laporan': _reportSection(state),
-      'notifikasi': _notificationSection(data),
-    };
-    final order = switch (widget.focus) {
-      'pmt' => ['pmt', 'rujukan', 'validasi', 'laporan', 'notifikasi'],
-      'laporan' => ['laporan', 'rujukan', 'validasi', 'pmt', 'notifikasi'],
-      'notifikasi' => ['notifikasi', 'rujukan', 'validasi', 'pmt', 'laporan'],
-      'rujukan' => ['rujukan', 'validasi', 'pmt', 'laporan', 'notifikasi'],
-      _ => ['rujukan', 'validasi', 'pmt', 'laporan', 'notifikasi'],
-    };
-    return [
-      for (final key in order) ...[
-        ...all[key]!,
+    return switch (widget.focus) {
+      'rujukan' => [
+        ..._referralSection(context, data),
         const SizedBox(height: 16),
+        ..._validationSection(state),
       ],
+      'pmt' => _pmtSection(state, data),
+      'laporan' => _reportSection(state),
+      'notifikasi' => _notificationSection(data),
+      _ => _homeSection(context, data),
+    };
+  }
+
+  List<Widget> _homeSection(BuildContext context, BidanDashboardData? data) {
+    final referrals = data?.referrals.length ?? 0;
+    final waiting = data?.referrals
+            .where((row) => row.status == 'menunggu_validasi')
+            .length ??
+        0;
+    final pmtItems = data?.pmtStock.length ?? 0;
+    final notifications = data?.notifications.length ?? 0;
+    return [
+      Text(
+        'Ringkasan Bidan',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+      ),
+      const SizedBox(height: 12),
+      LedgerListRow(
+        title: 'Rujukan perlu ditinjau',
+        subtitle: '$waiting dari $referrals rujukan menunggu validasi.',
+        trailing: const Icon(Icons.assignment_late_outlined),
+      ),
+      LedgerListRow(
+        title: 'Stok PMT',
+        subtitle: '$pmtItems item PMT tercatat.',
+        trailing: const Icon(Icons.inventory_2_outlined),
+      ),
+      LedgerListRow(
+        title: 'Notifikasi',
+        subtitle: '$notifications pesan untuk bidan.',
+        trailing: const Icon(Icons.notifications_none),
+      ),
     ];
   }
 
