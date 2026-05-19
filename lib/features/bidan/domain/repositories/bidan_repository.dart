@@ -14,6 +14,12 @@ abstract class BidanRepository {
     required String decision,
     required String note,
   });
+  Future<void> distributePmt({
+    required int validationId,
+    required int childId,
+    required int pmtId,
+    required int quantity,
+  });
   Future<List<PmtStock>> pmtStock();
   Future<Uint8List> downloadReport(String type);
   Future<List<AppNotification>> notifications();

@@ -11,6 +11,7 @@ import '../features/auth/domain/usecases/restore_session.dart';
 import '../features/bidan/data/datasources/bidan_remote_data_source.dart';
 import '../features/bidan/data/repositories/bidan_repository_impl.dart';
 import '../features/bidan/domain/repositories/bidan_repository.dart';
+import '../features/bidan/domain/usecases/distribute_pmt.dart';
 import '../features/bidan/domain/usecases/download_report.dart';
 import '../features/bidan/domain/usecases/get_bidan_dashboard.dart';
 import '../features/bidan/domain/usecases/validate_referral.dart';
@@ -90,6 +91,10 @@ final getBidanDashboardProvider = Provider<GetBidanDashboard>(
 
 final validateReferralProvider = Provider<ValidateReferral>(
   (ref) => ValidateReferral(ref.watch(bidanRepositoryProvider)),
+);
+
+final distributePmtProvider = Provider<DistributePmt>(
+  (ref) => DistributePmt(ref.watch(bidanRepositoryProvider)),
 );
 
 final downloadReportProvider = Provider<DownloadReport>(

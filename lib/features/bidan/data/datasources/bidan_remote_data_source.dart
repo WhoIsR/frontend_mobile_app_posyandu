@@ -33,6 +33,24 @@ class BidanRemoteDataSource {
     return ValidationResultModel.fromJson(json);
   }
 
+  Future<void> distributePmt({
+    required int validationId,
+    required int childId,
+    required int pmtId,
+    required int quantity,
+  }) async {
+    await _apiClient.postJson(
+      '/distribusi-pmt',
+      body: {
+        'validasi_medis_id': validationId,
+        'balita_id': childId,
+        'pmt_id': pmtId,
+        'jumlah': quantity,
+        'tanggal_distribusi': DateTime.now().toIso8601String().split('T').first,
+      },
+    );
+  }
+
   Future<List<PmtStockModel>> pmtStock() async {
     final json = await _apiClient.getJson('/pmt');
     return paginatedRows(json).map(PmtStockModel.fromJson).toList();

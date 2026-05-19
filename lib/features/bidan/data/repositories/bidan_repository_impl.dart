@@ -44,6 +44,21 @@ class BidanRepositoryImpl implements BidanRepository {
   }
 
   @override
+  Future<void> distributePmt({
+    required int validationId,
+    required int childId,
+    required int pmtId,
+    required int quantity,
+  }) {
+    return _remoteDataSource.distributePmt(
+      validationId: validationId,
+      childId: childId,
+      pmtId: pmtId,
+      quantity: quantity,
+    );
+  }
+
+  @override
   Future<List<PmtStock>> pmtStock() => _remoteDataSource.pmtStock();
 
   @override

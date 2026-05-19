@@ -134,6 +134,48 @@ void main() {
     expect(find.text('Validasi tersimpan'), findsOneWidget);
   });
 
+  testWidgets('Bidan distribusi PMT dari validasi PMT', (tester) async {
+    final bidan = FakeBidanRepository();
+    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '1976010101010001');
+
+    await tester.ensureVisible(find.byKey(const Key('decisionDropdown')));
+    await tester.tap(find.byKey(const Key('decisionDropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PMT').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('validateButton')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('distributePmtButton')));
+    await tester.tap(find.byKey(const Key('distributePmtButton')));
+    await tester.pumpAndSettle();
+
+    expect(bidan.validatedDecision, 'pmt');
+    expect(bidan.distributedPmtId, 51);
+    expect(bidan.distributedQuantity, 1);
+    expect(find.text('Distribusi PMT tersimpan'), findsOneWidget);
+  });
+
+  testWidgets('Bidan bisa memilih tiga jenis laporan PDF', (tester) async {
+    final bidan = FakeBidanRepository();
+    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '1976010101010001');
+    await tester.tap(find.text('Laporan'));
+    await tester.pumpAndSettle();
+
+    for (final type in ['prediksi', 'kehadiran', 'distribusi-pmt']) {
+      await tester.ensureVisible(find.byKey(Key('downloadReport-$type')));
+      await tester.tap(find.byKey(Key('downloadReport-$type')));
+      await tester.pumpAndSettle();
+    }
+
+    expect(bidan.downloadedReports, ['prediksi', 'kehadiran', 'distribusi-pmt']);
+    expect(find.textContaining('PDF berhasil diminta'), findsOneWidget);
+  });
+
   testWidgets('Kader tidak melihat fitur khusus Bidan', (tester) async {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader)));
     await tester.pumpAndSettle();
@@ -313,6 +355,9 @@ class FakeKaderRepository implements KaderRepository {
 
 class FakeBidanRepository implements BidanRepository {
   String? validatedDecision;
+  int? distributedPmtId;
+  int? distributedQuantity;
+  final List<String> downloadedReports = [];
 
   @override
   Future<BidanDashboardData> dashboard() async {
@@ -328,6 +373,7 @@ class FakeBidanRepository implements BidanRepository {
     return const [
       Referral(
         id: 31,
+        childId: 11,
         namaBalita: 'Raka Pratama',
         namaIbu: 'Wulan',
         riskLevel: 'tinggi',
@@ -347,6 +393,17 @@ class FakeBidanRepository implements BidanRepository {
   }
 
   @override
+  Future<void> distributePmt({
+    required int validationId,
+    required int childId,
+    required int pmtId,
+    required int quantity,
+  }) async {
+    distributedPmtId = pmtId;
+    distributedQuantity = quantity;
+  }
+
+  @override
   Future<List<PmtStock>> pmtStock() async {
     return const [
       PmtStock(
@@ -361,6 +418,7 @@ class FakeBidanRepository implements BidanRepository {
 
   @override
   Future<Uint8List> downloadReport(String type) async {
+    downloadedReports.add(type);
     return Uint8List.fromList([1, 2, 3]);
   }
 

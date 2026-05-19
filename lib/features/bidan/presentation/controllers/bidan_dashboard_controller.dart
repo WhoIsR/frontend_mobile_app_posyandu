@@ -9,6 +9,7 @@ class BidanDashboardState {
     this.data,
     this.isLoading = true,
     this.isSavingValidation = false,
+    this.isDistributingPmt = false,
     this.message,
     this.isError = false,
   });
@@ -16,6 +17,7 @@ class BidanDashboardState {
   final BidanDashboardData? data;
   final bool isLoading;
   final bool isSavingValidation;
+  final bool isDistributingPmt;
   final String? message;
   final bool isError;
 
@@ -23,6 +25,7 @@ class BidanDashboardState {
     BidanDashboardData? data,
     bool? isLoading,
     bool? isSavingValidation,
+    bool? isDistributingPmt,
     String? message,
     bool clearMessage = false,
     bool? isError,
@@ -31,6 +34,7 @@ class BidanDashboardState {
       data: data ?? this.data,
       isLoading: isLoading ?? this.isLoading,
       isSavingValidation: isSavingValidation ?? this.isSavingValidation,
+      isDistributingPmt: isDistributingPmt ?? this.isDistributingPmt,
       message: clearMessage ? null : message ?? this.message,
       isError: isError ?? this.isError,
     );
@@ -38,6 +42,9 @@ class BidanDashboardState {
 }
 
 class BidanDashboardController extends Notifier<BidanDashboardState> {
+  int? _lastPmtValidationId;
+  int? _lastPmtChildId;
+
   @override
   BidanDashboardState build() {
     Future.microtask(load);
@@ -72,11 +79,15 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     }
     state = state.copyWith(isSavingValidation: true, clearMessage: true);
     try {
-      await ref.read(validateReferralProvider)(
+      final validation = await ref.read(validateReferralProvider)(
         referralId: referrals.first.id,
         decision: decision,
         note: note.trim().isEmpty ? 'Observasi dan pantau ulang.' : note.trim(),
       );
+      if (validation.decision == 'pmt') {
+        _lastPmtValidationId = validation.id;
+        _lastPmtChildId = referrals.first.childId;
+      }
       final data = await ref.read(getBidanDashboardProvider)();
       state = BidanDashboardState(
         data: data,
@@ -86,6 +97,44 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     } catch (error) {
       state = state.copyWith(
         isSavingValidation: false,
+        message: _errorText(error),
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> distributeFirstPmt() async {
+    final pmtStock = state.data?.pmtStock ?? const [];
+    final validationId = _lastPmtValidationId;
+    final childId = _lastPmtChildId;
+    if (validationId == null || childId == null) {
+      state = state.copyWith(
+        message: 'Simpan validasi dengan keputusan PMT terlebih dulu.',
+        isError: true,
+      );
+      return;
+    }
+    if (pmtStock.isEmpty) {
+      state = state.copyWith(message: 'Belum ada stok PMT.', isError: true);
+      return;
+    }
+    state = state.copyWith(isDistributingPmt: true, clearMessage: true);
+    try {
+      await ref.read(distributePmtProvider)(
+        validationId: validationId,
+        childId: childId,
+        pmtId: pmtStock.first.id,
+        quantity: 1,
+      );
+      final data = await ref.read(getBidanDashboardProvider)();
+      state = BidanDashboardState(
+        data: data,
+        isLoading: false,
+        message: 'Distribusi PMT tersimpan',
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isDistributingPmt: false,
         message: _errorText(error),
         isError: true,
       );

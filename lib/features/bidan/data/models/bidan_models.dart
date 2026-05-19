@@ -7,6 +7,7 @@ import '../../domain/entities/validation_result.dart';
 class ReferralModel extends Referral {
   const ReferralModel({
     required super.id,
+    required super.childId,
     required super.namaBalita,
     required super.namaIbu,
     required super.riskLevel,
@@ -16,6 +17,7 @@ class ReferralModel extends Referral {
   factory ReferralModel.fromJson(Map<String, dynamic> json) {
     return ReferralModel(
       id: _asInt(json['id']),
+      childId: _asInt(json['balita_id']),
       namaBalita: json['nama_balita']?.toString() ?? '-',
       namaIbu: json['nama_ibu']?.toString() ?? '-',
       riskLevel: json['risk_level']?.toString() ?? 'rendah',
