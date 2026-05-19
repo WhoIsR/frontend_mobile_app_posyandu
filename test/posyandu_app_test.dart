@@ -33,8 +33,8 @@ void main() {
 
     expect(auth.lastLoginNik, '3276010101010001');
     expect(find.text('Beranda Kader'), findsWidgets);
+    expect(find.text('Ringkasan Kader'), findsOneWidget);
     expect(find.text('Sesi hari ini'), findsOneWidget);
-    expect(find.text('Input Pengukuran'), findsOneWidget);
     expect(find.text('Laporan'), findsNothing);
   });
 
@@ -68,16 +68,19 @@ void main() {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
     await tester.pumpAndSettle();
     await _submitLogin(tester);
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
     await tester.enterText(find.byKey(const Key('heightField')), '84.5');
-    await tester.drag(find.byKey(const Key('kaderList')), const Offset(0, -360));
-    await tester.pumpAndSettle();
+    await _scrollToKaderSaveButton(tester);
     await tester.tap(find.byKey(const Key('saveMeasurementButton')));
     await tester.pumpAndSettle();
 
     expect(kader.savedWeight, 10.2);
     expect(kader.savedHeight, 84.5);
+    await tester.tap(find.text('Skrining').last);
+    await tester.pumpAndSettle();
     expect(find.text('Perlu perhatian'), findsWidgets);
     expect(find.textContaining('Pertumbuhan anak perlu diperhatikan'), findsOneWidget);
   });
@@ -88,11 +91,12 @@ void main() {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
     await tester.pumpAndSettle();
     await _submitLogin(tester);
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
     await tester.enterText(find.byKey(const Key('heightField')), '84.5');
-    await tester.drag(find.byKey(const Key('kaderList')), const Offset(0, -360));
-    await tester.pumpAndSettle();
+    await _scrollToKaderSaveButton(tester);
     await tester.tap(find.byKey(const Key('saveMeasurementButton')));
     await tester.pumpAndSettle();
 
@@ -106,17 +110,47 @@ void main() {
     await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
     await tester.pumpAndSettle();
     await _submitLogin(tester);
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
     await tester.enterText(find.byKey(const Key('heightField')), '84.5');
-    await tester.drag(find.byKey(const Key('kaderList')), const Offset(0, -360));
-    await tester.pumpAndSettle();
+    await _scrollToKaderSaveButton(tester);
     await tester.tap(find.byKey(const Key('saveMeasurementButton')));
     await tester.pumpAndSettle();
 
+    expect(kader.savedWeight, 10.2);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -240));
+    await tester.pumpAndSettle();
     expect(find.text('Prediksi gagal'), findsWidgets);
     expect(find.textContaining('Pengukuran tersimpan'), findsWidgets);
     expect(find.text('Coba Lagi'), findsOneWidget);
+  });
+
+  testWidgets('Kader bottom nav menampilkan halaman sesuai tab', (tester) async {
+    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader)));
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Cari balita'), findsOneWidget);
+    expect(find.text('Raka Pratama'), findsWidgets);
+    expect(find.text('Hasil Skrining Hari Ini'), findsNothing);
+    expect(find.text('Validasi selesai'), findsNothing);
+
+    await tester.tap(find.text('Skrining').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Hasil Skrining Hari Ini'), findsOneWidget);
+    expect(find.text('Cari balita'), findsNothing);
+    expect(find.byKey(const Key('saveMeasurementButton')), findsNothing);
+    expect(find.text('Validasi selesai'), findsNothing);
+
+    await tester.tap(find.text('Notifikasi').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Validasi selesai'), findsOneWidget);
+    expect(find.text('Hasil Skrining Hari Ini'), findsNothing);
+    expect(find.text('Cari balita'), findsNothing);
   });
 
   testWidgets('Bidan validasi rujukan mengubah status tampilan', (tester) async {
@@ -251,6 +285,15 @@ Future<void> _submitLogin(
   await tester.enterText(find.byKey(const Key('nikField')), nik);
   await tester.enterText(find.byKey(const Key('passwordField')), password);
   await tester.tap(find.text('Masuk'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _scrollToKaderSaveButton(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.byKey(const Key('saveMeasurementButton')),
+    120,
+    scrollable: find.byType(Scrollable).last,
+  );
   await tester.pumpAndSettle();
 }
 
