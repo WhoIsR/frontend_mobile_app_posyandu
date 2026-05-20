@@ -18,7 +18,9 @@ class BidanDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
-  final _noteController = TextEditingController(text: 'Observasi dan pantau ulang.');
+  final _noteController = TextEditingController(
+    text: 'Observasi dan pantau ulang.',
+  );
   String _decision = 'observasi';
 
   @override
@@ -34,11 +36,9 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     final data = state.data;
     final sections = _sections(context, state, data);
     return RefreshIndicator(
-      onRefresh: () => ref.read(bidanDashboardControllerProvider.notifier).load(),
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: sections,
-      ),
+      onRefresh: () =>
+          ref.read(bidanDashboardControllerProvider.notifier).load(),
+      child: ListView(padding: const EdgeInsets.all(16), children: sections),
     );
   }
 
@@ -62,29 +62,43 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
 
   List<Widget> _homeSection(BuildContext context, BidanDashboardData? data) {
     final referrals = data?.referrals.length ?? 0;
-    final waiting = data?.referrals
+    final waiting =
+        data?.referrals
             .where((row) => row.status == 'menunggu_validasi')
             .length ??
         0;
     final pmtItems = data?.pmtStock.length ?? 0;
+    final lowStock = data?.pmtStock.where((row) => row.isLow).length ?? 0;
     final notifications = data?.notifications.length ?? 0;
     return [
-      Text(
-        'Ringkasan Bidan',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+      const _PageIntro(
+        title: 'Ringkasan Bidan',
+        subtitle: 'Pantau rujukan, PMT, dan laporan tanpa membuka semua menu.',
+      ),
+      const SizedBox(height: 12),
+      _SummaryStrip(
+        items: [
+          _SummaryItem(
+            label: 'Menunggu',
+            value: '$waiting',
+            helper: 'dari $referrals rujukan',
+            icon: Icons.assignment_late_outlined,
+          ),
+          _SummaryItem(
+            label: 'PMT',
+            value: '$pmtItems',
+            helper: lowStock > 0 ? '$lowStock stok menipis' : 'stok aman',
+            icon: Icons.inventory_2_outlined,
+          ),
+        ],
       ),
       const SizedBox(height: 12),
       LedgerListRow(
         title: 'Rujukan perlu ditinjau',
-        subtitle: '$waiting dari $referrals rujukan menunggu validasi.',
-        trailing: const Icon(Icons.assignment_late_outlined),
-      ),
-      LedgerListRow(
-        title: 'Stok PMT',
-        subtitle: '$pmtItems item PMT tercatat.',
-        trailing: const Icon(Icons.inventory_2_outlined),
+        subtitle: waiting == 0
+            ? 'Belum ada rujukan yang menunggu validasi.'
+            : '$waiting rujukan menunggu keputusan bidan.',
+        trailing: const Icon(Icons.chevron_right),
       ),
       LedgerListRow(
         title: 'Notifikasi',
@@ -94,13 +108,14 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     ];
   }
 
-  List<Widget> _referralSection(BuildContext context, BidanDashboardData? data) {
+  List<Widget> _referralSection(
+    BuildContext context,
+    BidanDashboardData? data,
+  ) {
     return [
-      Text(
-        'Rujukan',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+      const _PageIntro(
+        title: 'Rujukan',
+        subtitle: 'Tinjau hasil skrining yang perlu keputusan lanjutan.',
       ),
       const SizedBox(height: 12),
       if (data?.referrals.isEmpty ?? true)
@@ -113,41 +128,95 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
   List<Widget> _validationSection(BidanDashboardState state) {
     return [
       const SectionTitle('Validasi Medis'),
-      LedgerPanel(
-        title: 'Keputusan',
-        subtitle: 'Observasi, konseling, PMT, rujuk puskesmas, atau cek ulang data.',
-        accent: LedgerColors.bidanBlue,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              key: const Key('decisionDropdown'),
-              initialValue: _decision,
-              decoration: const InputDecoration(labelText: 'Keputusan'),
-              items: const [
-                DropdownMenuItem(value: 'observasi', child: Text('Observasi')),
-                DropdownMenuItem(value: 'konseling', child: Text('Konseling')),
-                DropdownMenuItem(value: 'pmt', child: Text('PMT')),
-                DropdownMenuItem(value: 'rujuk_puskesmas', child: Text('Rujuk Puskesmas')),
-                DropdownMenuItem(value: 'cek_ulang_data', child: Text('Cek ulang data')),
-              ],
-              onChanged: (value) => setState(() => _decision = value ?? 'observasi'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _noteController,
-              minLines: 2,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Catatan bidan'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('validateButton'),
-              onPressed: state.isSavingValidation ? null : _validateReferral,
-              child: Text(state.isSavingValidation ? 'Menyimpan...' : 'Simpan Validasi'),
-            ),
-          ],
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SoftIcon(icon: Icons.medical_information_outlined),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Keputusan tindak lanjut',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Gunakan catatan singkat agar kader memahami arahan berikutnya.',
+                          style: TextStyle(
+                            color: LedgerColors.inkSoft,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                key: const Key('decisionDropdown'),
+                initialValue: _decision,
+                decoration: const InputDecoration(labelText: 'Keputusan'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'observasi',
+                    child: Text('Observasi'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'konseling',
+                    child: Text('Konseling'),
+                  ),
+                  DropdownMenuItem(value: 'pmt', child: Text('PMT')),
+                  DropdownMenuItem(
+                    value: 'rujuk_puskesmas',
+                    child: Text('Rujuk Puskesmas'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'cek_ulang_data',
+                    child: Text('Cek ulang data'),
+                  ),
+                ],
+                onChanged: (value) =>
+                    setState(() => _decision = value ?? 'observasi'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _noteController,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Catatan bidan'),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                key: const Key('validateButton'),
+                onPressed: state.isSavingValidation ? null : _validateReferral,
+                icon: state.isSavingValidation
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: Text(
+                  state.isSavingValidation ? 'Menyimpan...' : 'Simpan Validasi',
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Label risiko tetap skrining awal, bukan diagnosis.',
+        style: TextStyle(color: LedgerColors.inkSoft, fontSize: 12),
       ),
       if (state.message != null &&
           !state.message!.toLowerCase().contains('distribusi') &&
@@ -158,22 +227,55 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     ];
   }
 
-  List<Widget> _pmtSection(BidanDashboardState state, BidanDashboardData? data) {
+  List<Widget> _pmtSection(
+    BidanDashboardState state,
+    BidanDashboardData? data,
+  ) {
+    final stockCount = data?.pmtStock.length ?? 0;
+    final lowStock = data?.pmtStock.where((row) => row.isLow).length ?? 0;
     return [
-      const SectionTitle('PMT'),
+      const _PageIntro(
+        title: 'PMT',
+        subtitle: 'Pantau stok dan catat distribusi dari keputusan bidan.',
+      ),
+      const SizedBox(height: 12),
+      _SummaryStrip(
+        items: [
+          _SummaryItem(
+            label: 'Item PMT',
+            value: '$stockCount',
+            helper: 'tercatat',
+            icon: Icons.inventory_2_outlined,
+          ),
+          _SummaryItem(
+            label: 'Perhatian',
+            value: '$lowStock',
+            helper: 'stok menipis',
+            icon: Icons.error_outline,
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
       if (data?.pmtStock.isEmpty ?? true)
         const EmptyState(text: 'Belum ada stok PMT.')
       else ...[
         ...data!.pmtStock.map((row) => _StockRow(stock: row)),
         const SizedBox(height: 8),
-        FilledButton(
+        FilledButton.icon(
           key: const Key('distributePmtButton'),
           onPressed: state.isDistributingPmt
               ? null
               : () => ref
-                  .read(bidanDashboardControllerProvider.notifier)
-                  .distributeFirstPmt(),
-          child: Text(
+                    .read(bidanDashboardControllerProvider.notifier)
+                    .distributeFirstPmt(),
+          icon: state.isDistributingPmt
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.inventory_outlined),
+          label: Text(
             state.isDistributingPmt ? 'Menyimpan...' : 'Distribusikan 1 paket',
           ),
         ),
@@ -188,7 +290,11 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
 
   List<Widget> _reportSection(BidanDashboardState state) {
     return [
-      const SectionTitle('Laporan PDF'),
+      const _PageIntro(
+        title: 'Laporan PDF',
+        subtitle: 'Unduh rekap MVP sesuai kebutuhan Posyandu dan bidan.',
+      ),
+      const SizedBox(height: 12),
       _ReportPicker(
         onDownload: (type) => ref
             .read(bidanDashboardControllerProvider.notifier)
@@ -197,21 +303,24 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       if (state.message != null &&
           state.message!.toLowerCase().contains('pdf')) ...[
         const SizedBox(height: 12),
-        InlineMessage(
-          text: state.message!,
-          isError: state.isError,
-        ),
+        InlineMessage(text: state.message!, isError: state.isError),
       ],
     ];
   }
 
   List<Widget> _notificationSection(BidanDashboardData? data) {
     return [
-      const SectionTitle('Notifikasi'),
+      const _PageIntro(
+        title: 'Notifikasi',
+        subtitle: 'Pesan sistem dari rujukan, validasi, dan PMT.',
+      ),
+      const SizedBox(height: 12),
       if (data?.notifications.isEmpty ?? true)
         const EmptyState(text: 'Belum ada notifikasi.')
       else
-        ...data!.notifications.take(3).map(
+        ...data!.notifications
+            .take(3)
+            .map(
               (row) => LedgerListRow(
                 title: row.title,
                 subtitle: row.message,
@@ -222,10 +331,9 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
   }
 
   Future<void> _validateReferral() {
-    return ref.read(bidanDashboardControllerProvider.notifier).validateFirstReferral(
-          decision: _decision,
-          note: _noteController.text,
-        );
+    return ref
+        .read(bidanDashboardControllerProvider.notifier)
+        .validateFirstReferral(decision: _decision, note: _noteController.text);
   }
 }
 
@@ -238,7 +346,8 @@ class _ReferralRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LedgerListRow(
       title: referral.namaBalita,
-      subtitle: 'Ibu: ${referral.namaIbu} | ${referral.status}',
+      subtitle:
+          'Ibu: ${referral.namaIbu} | ${_readableStatus(referral.status)}',
       trailing: RiskBadge(risk: referral.riskLevel),
     );
   }
@@ -253,11 +362,14 @@ class _StockRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LedgerListRow(
       title: stock.name,
-      subtitle: 'Stok ${stock.stock} ${stock.unit} | Minimum ${stock.minimumStock}',
+      subtitle:
+          'Stok ${stock.stock} ${stock.unit} | Minimum ${stock.minimumStock}',
       trailing: StatusBadge(
         label: stock.isLow ? 'Stok menipis' : 'Aman',
         color: stock.isLow ? LedgerColors.attention : LedgerColors.primary,
-        softColor: stock.isLow ? LedgerColors.attentionSoft : LedgerColors.primarySoft,
+        softColor: stock.isLow
+            ? LedgerColors.attentionSoft
+            : LedgerColors.primarySoft,
       ),
     );
   }
@@ -272,36 +384,227 @@ class _ReportPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Prediksi Risiko'),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('downloadReport-prediksi'),
+            _ReportAction(
+              title: 'Prediksi Risiko',
+              subtitle: 'Rekap hasil skrining per sesi.',
+              icon: Icons.fact_check_outlined,
+              buttonLabel: 'Download Prediksi',
+              buttonKey: const Key('downloadReport-prediksi'),
               onPressed: () => onDownload('prediksi'),
-              child: const Text('Download Prediksi'),
             ),
-            const SizedBox(height: 8),
-            const Text('Kehadiran Posyandu'),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('downloadReport-kehadiran'),
+            const Divider(height: 1),
+            _ReportAction(
+              title: 'Kehadiran Posyandu',
+              subtitle: 'Daftar balita yang hadir pada sesi.',
+              icon: Icons.event_available_outlined,
+              buttonLabel: 'Download Kehadiran',
+              buttonKey: const Key('downloadReport-kehadiran'),
               onPressed: () => onDownload('kehadiran'),
-              child: const Text('Download Kehadiran'),
             ),
-            const SizedBox(height: 8),
-            const Text('Distribusi PMT'),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('downloadReport-distribusi-pmt'),
+            const Divider(height: 1),
+            _ReportAction(
+              title: 'Distribusi PMT',
+              subtitle: 'Catatan paket PMT yang disalurkan.',
+              icon: Icons.inventory_outlined,
+              buttonLabel: 'Download Distribusi',
+              buttonKey: const Key('downloadReport-distribusi-pmt'),
               onPressed: () => onDownload('distribusi-pmt'),
-              child: const Text('Download Distribusi'),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _PageIntro extends StatelessWidget {
+  const _PageIntro({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: const TextStyle(color: LedgerColors.inkSoft, height: 1.35),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryStrip extends StatelessWidget {
+  const _SummaryStrip({required this.items});
+
+  final List<_SummaryItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var index = 0; index < items.length; index++) ...[
+          Expanded(child: _SummaryTile(item: items[index])),
+          if (index != items.length - 1) const SizedBox(width: 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _SummaryItem {
+  const _SummaryItem({
+    required this.label,
+    required this.value,
+    required this.helper,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final String helper;
+  final IconData icon;
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({required this.item});
+
+  final _SummaryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SoftIcon(icon: item.icon),
+            const SizedBox(height: 12),
+            Text(
+              item.value,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              item.label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              item.helper,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: LedgerColors.inkSoft,
+                fontSize: 12,
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SoftIcon extends StatelessWidget {
+  const _SoftIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: LedgerColors.primarySoft,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 20, color: LedgerColors.primary),
+    );
+  }
+}
+
+class _ReportAction extends StatelessWidget {
+  const _ReportAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.buttonLabel,
+    required this.buttonKey,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String buttonLabel;
+  final Key buttonKey;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SoftIcon(icon: icon),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: buttonKey,
+            onPressed: onPressed,
+            icon: const Icon(Icons.download_outlined),
+            label: Text(buttonLabel),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _readableStatus(String status) {
+  return status.replaceAll('_', ' ');
 }
