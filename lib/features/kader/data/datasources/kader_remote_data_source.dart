@@ -1,4 +1,5 @@
 import '../../../../core/network/api_client.dart';
+import '../../domain/entities/create_balita_request.dart';
 import '../models/kader_models.dart';
 
 class KaderRemoteDataSource {
@@ -12,11 +13,35 @@ class KaderRemoteDataSource {
   }
 
   Future<List<BalitaModel>> children({String search = ''}) async {
-    final json = await _apiClient.getJson('/balita', query: {
-      if (search.trim().isNotEmpty) 'search': search.trim(),
-      'per_page': '10',
-    });
+    final json = await _apiClient.getJson(
+      '/balita',
+      query: {
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        'per_page': '10',
+      },
+    );
     return paginatedRows(json).map(BalitaModel.fromJson).toList();
+  }
+
+  Future<BalitaModel> createBalita(CreateBalitaRequest request) async {
+    final json = await _apiClient.postJson(
+      '/balita',
+      body: {
+        'nama_balita': request.namaBalita,
+        if (request.nikBalita?.trim().isNotEmpty ?? false)
+          'nik_balita': request.nikBalita!.trim(),
+        'tanggal_lahir': request.tanggalLahir,
+        'jenis_kelamin': request.jenisKelamin,
+        'nama_ibu': request.namaIbu,
+        if (request.nikIbu?.trim().isNotEmpty ?? false)
+          'nik_ibu': request.nikIbu!.trim(),
+        'alamat': request.alamat,
+        'penghasilan': request.penghasilan,
+        'jumlah_keluarga': request.jumlahKeluarga,
+        'posyandu_id': request.posyanduId,
+      },
+    );
+    return BalitaModel.fromJson(json);
   }
 
   Future<MeasurementResultModel> saveMeasurement({
@@ -25,12 +50,15 @@ class KaderRemoteDataSource {
     required double weight,
     required double height,
   }) async {
-    final json = await _apiClient.postJson('/pengukuran', body: {
-      'sesi_posyandu_id': sessionId,
-      'balita_id': childId,
-      'berat_badan': weight,
-      'tinggi_badan': height,
-    });
+    final json = await _apiClient.postJson(
+      '/pengukuran',
+      body: {
+        'sesi_posyandu_id': sessionId,
+        'balita_id': childId,
+        'berat_badan': weight,
+        'tinggi_badan': height,
+      },
+    );
     return MeasurementResultModel.fromJson(json);
   }
 

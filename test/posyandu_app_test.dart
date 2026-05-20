@@ -17,6 +17,7 @@ import 'package:mobile/features/bidan/domain/entities/validation_result.dart';
 import 'package:mobile/features/bidan/domain/repositories/bidan_repository.dart';
 import 'package:mobile/features/kader/domain/entities/app_notification.dart';
 import 'package:mobile/features/kader/domain/entities/balita.dart';
+import 'package:mobile/features/kader/domain/entities/create_balita_request.dart';
 import 'package:mobile/features/kader/domain/entities/kader_dashboard_data.dart';
 import 'package:mobile/features/kader/domain/entities/measurement_result.dart';
 import 'package:mobile/features/kader/domain/entities/posyandu_session.dart';
@@ -39,7 +40,9 @@ void main() {
   });
 
   testWidgets('login sukses Bidan mengarah ke shell Bidan', (tester) async {
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan)));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan)),
+    );
     await tester.pumpAndSettle();
 
     await _submitLogin(tester, nik: '1976010101010001');
@@ -65,10 +68,12 @@ void main() {
     tester,
   ) async {
     final kader = FakeKaderRepository();
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
-    await tester.tap(find.text('Balita').last);
+    await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
@@ -82,16 +87,21 @@ void main() {
     await tester.tap(find.text('Skrining').last);
     await tester.pumpAndSettle();
     expect(find.text('Perlu perhatian'), findsWidgets);
-    expect(find.textContaining('Pertumbuhan anak perlu diperhatikan'), findsOneWidget);
+    expect(
+      find.textContaining('Pertumbuhan anak perlu diperhatikan'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('duplikasi pengukuran menampilkan pesan backend', (tester) async {
     final kader = FakeKaderRepository()
       ..measurementError = 'Balita ini sudah dicatat pada sesi hari ini.';
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
-    await tester.tap(find.text('Balita').last);
+    await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
@@ -100,35 +110,45 @@ void main() {
     await tester.tap(find.byKey(const Key('saveMeasurementButton')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Balita ini sudah dicatat pada sesi hari ini.'), findsOneWidget);
+    expect(
+      find.text('Balita ini sudah dicatat pada sesi hari ini.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('prediksi gagal tetap menampilkan pengukuran tersimpan dan retry', (
+  testWidgets(
+    'prediksi gagal tetap menampilkan pengukuran tersimpan dan retry',
+    (tester) async {
+      final kader = FakeKaderRepository()..predictionFails = true;
+      await tester.pumpWidget(
+        _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+      );
+      await tester.pumpAndSettle();
+      await _submitLogin(tester);
+      await tester.tap(find.text('Sesi').last);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const Key('weightField')), '10.2');
+      await tester.enterText(find.byKey(const Key('heightField')), '84.5');
+      await _scrollToKaderSaveButton(tester);
+      await tester.tap(find.byKey(const Key('saveMeasurementButton')));
+      await tester.pumpAndSettle();
+
+      expect(kader.savedWeight, 10.2);
+      await tester.drag(find.byType(Scrollable).last, const Offset(0, -240));
+      await tester.pumpAndSettle();
+      expect(find.text('Prediksi gagal'), findsWidgets);
+      expect(find.textContaining('Pengukuran tersimpan'), findsWidgets);
+      expect(find.text('Coba Lagi'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Kader bottom nav menampilkan halaman sesuai tab', (
     tester,
   ) async {
-    final kader = FakeKaderRepository()..predictionFails = true;
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader));
-    await tester.pumpAndSettle();
-    await _submitLogin(tester);
-    await tester.tap(find.text('Balita').last);
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byKey(const Key('weightField')), '10.2');
-    await tester.enterText(find.byKey(const Key('heightField')), '84.5');
-    await _scrollToKaderSaveButton(tester);
-    await tester.tap(find.byKey(const Key('saveMeasurementButton')));
-    await tester.pumpAndSettle();
-
-    expect(kader.savedWeight, 10.2);
-    await tester.drag(find.byType(Scrollable).last, const Offset(0, -240));
-    await tester.pumpAndSettle();
-    expect(find.text('Prediksi gagal'), findsWidgets);
-    expect(find.textContaining('Pengukuran tersimpan'), findsWidgets);
-    expect(find.text('Coba Lagi'), findsOneWidget);
-  });
-
-  testWidgets('Kader bottom nav menampilkan halaman sesuai tab', (tester) async {
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader)));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader)),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
 
@@ -136,6 +156,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cari balita'), findsOneWidget);
     expect(find.text('Raka Pratama'), findsWidgets);
+    expect(find.text('Tambah Balita'), findsOneWidget);
+    expect(find.byKey(const Key('saveMeasurementButton')), findsNothing);
     expect(find.text('Hasil Skrining Hari Ini'), findsNothing);
     expect(find.text('Validasi selesai'), findsNothing);
 
@@ -153,9 +175,67 @@ void main() {
     expect(find.text('Cari balita'), findsNothing);
   });
 
-  testWidgets('Bidan validasi rujukan mengubah status tampilan', (tester) async {
+  testWidgets('Kader bisa mendaftarkan balita baru dari tab Balita', (
+    tester,
+  ) async {
+    final kader = FakeKaderRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tambah Balita'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('childNameField')),
+      'Nara Putri',
+    );
+    await tester.enterText(
+      find.byKey(const Key('childNikField')),
+      '3276010101010002',
+    );
+    await tester.enterText(
+      find.byKey(const Key('birthDateField')),
+      '2024-01-12',
+    );
+    await tester.tap(find.byKey(const Key('genderDropdown')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Perempuan').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('motherNameField')), 'Dewi');
+    await tester.enterText(
+      find.byKey(const Key('motherNikField')),
+      '3276010101010003',
+    );
+    await tester.enterText(
+      find.byKey(const Key('addressField')),
+      'Jl. Melati 3',
+    );
+    await tester.drag(find.byType(ListView).last, const Offset(0, -480));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('incomeField')), '2500000');
+    await tester.enterText(find.byKey(const Key('familyCountField')), '4');
+    await tester.ensureVisible(find.byKey(const Key('saveBalitaButton')));
+    await tester.tap(find.byKey(const Key('saveBalitaButton')));
+    await tester.pumpAndSettle();
+
+    expect(kader.createdChildName, 'Nara Putri');
+    expect(kader.createdGender, 'P');
+    expect(kader.createdPosyanduId, 1);
+    expect(find.text('Balita baru tersimpan.'), findsOneWidget);
+    expect(find.text('Nara Putri'), findsWidgets);
+  });
+
+  testWidgets('Bidan validasi rujukan mengubah status tampilan', (
+    tester,
+  ) async {
     final bidan = FakeBidanRepository();
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
     await tester.tap(find.text('Rujukan').last);
@@ -171,7 +251,9 @@ void main() {
 
   testWidgets('Bidan distribusi PMT dari validasi PMT', (tester) async {
     final bidan = FakeBidanRepository();
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester, nik: '1976010101010001');
     await tester.tap(find.text('Rujukan').last);
@@ -197,8 +279,12 @@ void main() {
     expect(find.text('Distribusi PMT tersimpan'), findsOneWidget);
   });
 
-  testWidgets('Bidan bottom nav menampilkan halaman sesuai tab', (tester) async {
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan)));
+  testWidgets('Bidan bottom nav menampilkan halaman sesuai tab', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan)),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester, nik: '1976010101010001');
 
@@ -224,7 +310,9 @@ void main() {
 
   testWidgets('Bidan bisa memilih tiga jenis laporan PDF', (tester) async {
     final bidan = FakeBidanRepository();
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester, nik: '1976010101010001');
     await tester.tap(find.text('Laporan').last);
@@ -236,12 +324,18 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    expect(bidan.downloadedReports, ['prediksi', 'kehadiran', 'distribusi-pmt']);
+    expect(bidan.downloadedReports, [
+      'prediksi',
+      'kehadiran',
+      'distribusi-pmt',
+    ]);
     expect(find.textContaining('PDF berhasil diminta'), findsOneWidget);
   });
 
   testWidgets('Kader tidak melihat fitur khusus Bidan', (tester) async {
-    await tester.pumpWidget(_app(auth: FakeAuthRepository.loginAs(UserRole.kader)));
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader)),
+    );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
 
@@ -269,7 +363,9 @@ Widget _app({
 }) {
   return ProviderScope(
     overrides: [
-      authRepositoryProvider.overrideWithValue(auth ?? FakeAuthRepository.loginAs(UserRole.kader)),
+      authRepositoryProvider.overrideWithValue(
+        auth ?? FakeAuthRepository.loginAs(UserRole.kader),
+      ),
       kaderRepositoryProvider.overrideWithValue(kader ?? FakeKaderRepository()),
       bidanRepositoryProvider.overrideWithValue(bidan ?? FakeBidanRepository()),
     ],
@@ -338,6 +434,9 @@ class FakeKaderRepository implements KaderRepository {
   bool predictionFails = false;
   double? savedWeight;
   double? savedHeight;
+  String? createdChildName;
+  String? createdGender;
+  int? createdPosyanduId;
 
   @override
   Future<KaderDashboardData> dashboard() async {
@@ -363,8 +462,16 @@ class FakeKaderRepository implements KaderRepository {
 
   @override
   Future<List<Balita>> searchChildren({String search = ''}) async {
-    return const [
-      Balita(
+    return [
+      if (createdChildName != null)
+        Balita(
+          id: 12,
+          namaBalita: createdChildName!,
+          namaIbu: 'Dewi',
+          tanggalLahir: '2024-01-12',
+          jenisKelamin: createdGender,
+        ),
+      const Balita(
         id: 11,
         namaBalita: 'Raka Pratama',
         namaIbu: 'Wulan',
@@ -372,6 +479,20 @@ class FakeKaderRepository implements KaderRepository {
         jenisKelamin: 'L',
       ),
     ];
+  }
+
+  @override
+  Future<Balita> createBalita(CreateBalitaRequest request) async {
+    createdChildName = request.namaBalita;
+    createdGender = request.jenisKelamin;
+    createdPosyanduId = request.posyanduId;
+    return Balita(
+      id: 12,
+      namaBalita: request.namaBalita,
+      namaIbu: request.namaIbu,
+      tanggalLahir: request.tanggalLahir,
+      jenisKelamin: request.jenisKelamin,
+    );
   }
 
   @override

@@ -18,6 +18,7 @@ import '../features/bidan/domain/usecases/validate_referral.dart';
 import '../features/kader/data/datasources/kader_remote_data_source.dart';
 import '../features/kader/data/repositories/kader_repository_impl.dart';
 import '../features/kader/domain/repositories/kader_repository.dart';
+import '../features/kader/domain/usecases/create_balita.dart';
 import '../features/kader/domain/usecases/get_kader_dashboard.dart';
 import '../features/kader/domain/usecases/retry_prediction.dart';
 import '../features/kader/domain/usecases/save_measurement.dart';
@@ -67,6 +68,10 @@ final getKaderDashboardProvider = Provider<GetKaderDashboard>(
 
 final searchBalitaProvider = Provider<SearchBalita>(
   (ref) => SearchBalita(ref.watch(kaderRepositoryProvider)),
+);
+
+final createBalitaProvider = Provider<CreateBalita>(
+  (ref) => CreateBalita(ref.watch(kaderRepositoryProvider)),
 );
 
 final saveMeasurementProvider = Provider<SaveMeasurement>(

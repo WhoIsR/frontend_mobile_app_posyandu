@@ -5,6 +5,7 @@ import '../../../../app/ledger_theme.dart';
 import '../../../../shared/risk/risk_copy.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
 import '../../domain/entities/balita.dart';
+import '../../domain/entities/create_balita_request.dart';
 import '../../domain/entities/kader_dashboard_data.dart';
 import '../../domain/entities/screening_item.dart';
 import '../controllers/kader_dashboard_controller.dart';
@@ -37,10 +38,14 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     if (state.isLoading) return const LoadingPanel();
 
     final data = state.data;
-    final firstChild = data?.children.isEmpty ?? true ? null : data!.children.first;
-    final sections = _sections(context, state, data, firstChild);
+    final firstChild = data?.children.isEmpty ?? true
+        ? null
+        : data!.children.first;
+    final selectedChild = state.selectedChild ?? firstChild;
+    final sections = _sections(context, state, data, selectedChild);
     return RefreshIndicator(
-      onRefresh: () => ref.read(kaderDashboardControllerProvider.notifier).load(),
+      onRefresh: () =>
+          ref.read(kaderDashboardControllerProvider.notifier).load(),
       child: ListView(
         key: const Key('kaderList'),
         padding: const EdgeInsets.all(16),
@@ -56,8 +61,13 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     Balita? firstChild,
   ) {
     return switch (widget.focus) {
-      'sesi' => _sessionSection(data, showMeasurement: true, state: state, firstChild: firstChild),
-      'balita' => _childrenSection(data, state, firstChild),
+      'sesi' => _sessionSection(
+        data,
+        showMeasurement: true,
+        state: state,
+        firstChild: firstChild,
+      ),
+      'balita' => _childrenSection(data, state),
       'skrining' => _screeningSection(data),
       'notifikasi' => _notificationSection(data),
       _ => _homeSection(context, data),
@@ -71,11 +81,14 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     return [
       Text(
         'Ringkasan Kader',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
-      const Text('Posyandu aktif hari ini', style: TextStyle(color: LedgerColors.inkSoft)),
+      const Text(
+        'Posyandu aktif hari ini',
+        style: TextStyle(color: LedgerColors.inkSoft),
+      ),
       const SizedBox(height: 16),
       ..._sessionSection(data, showMeasurement: false),
       const SizedBox(height: 16),
@@ -110,7 +123,11 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
             ? 'Belum ada sesi berjalan untuk Posyandu ini.'
             : 'Sesi ${data!.session!.tanggal} | Status ${data.session!.status}',
         accent: LedgerColors.primary,
-        child: Text(showMeasurement ? 'Input Pengukuran' : 'Tarik ke bawah untuk memuat ulang sesi.'),
+        child: Text(
+          showMeasurement
+              ? 'Input Pengukuran'
+              : 'Tarik ke bawah untuk memuat ulang sesi.',
+        ),
       ),
       if (showMeasurement && state != null) ...[
         const SizedBox(height: 16),
@@ -122,10 +139,18 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
   List<Widget> _childrenSection(
     KaderDashboardData? data,
     KaderDashboardState state,
-    Balita? firstChild,
   ) {
     return [
-      const SectionTitle('Cari balita'),
+      Row(
+        children: [
+          const Expanded(child: SectionTitle('Cari balita')),
+          TextButton.icon(
+            onPressed: _openCreateBalita,
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            label: const Text('Tambah Balita'),
+          ),
+        ],
+      ),
       TextField(
         controller: _searchController,
         onSubmitted: (_) => _search(),
@@ -143,13 +168,27 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       if (data?.children.isEmpty ?? true)
         const EmptyState(text: 'Belum ada balita pada hasil pencarian.')
       else
-        ...data!.children.take(3).map((row) => _ChildRow(child: row)),
-      const SizedBox(height: 16),
-      ..._measurementSection(state, firstChild),
+        ...data!.children
+            .take(10)
+            .map(
+              (row) => _ChildRow(
+                child: row,
+                onSelect: () => ref
+                    .read(kaderDashboardControllerProvider.notifier)
+                    .selectChild(row),
+              ),
+            ),
+      if (state.message != null) ...[
+        const SizedBox(height: 12),
+        InlineMessage(text: state.message!, isError: state.isError),
+      ],
     ];
   }
 
-  List<Widget> _measurementSection(KaderDashboardState state, Balita? firstChild) {
+  List<Widget> _measurementSection(
+    KaderDashboardState state,
+    Balita? firstChild,
+  ) {
     return [
       const SectionTitle('Input pengukuran'),
       _MeasurementPanel(
@@ -198,7 +237,9 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       if (data?.notifications.isEmpty ?? true)
         const EmptyState(text: 'Belum ada notifikasi.')
       else
-        ...data!.notifications.take(3).map(
+        ...data!.notifications
+            .take(3)
+            .map(
               (row) => LedgerListRow(
                 title: row.title,
                 subtitle: row.message,
@@ -214,38 +255,238 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         .search(_searchController.text);
   }
 
+  Future<void> _openCreateBalita() async {
+    final posyanduId = ref
+        .read(kaderDashboardControllerProvider)
+        .data
+        ?.session
+        ?.posyanduId;
+    if (posyanduId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi aktif belum tersedia untuk menentukan Posyandu.'),
+        ),
+      );
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _CreateBalitaPage(posyanduId: posyanduId),
+      ),
+    );
+  }
+
   Future<void> _saveMeasurement() async {
     final weight = double.tryParse(_weightController.text.replaceAll(',', '.'));
     final height = double.tryParse(_heightController.text.replaceAll(',', '.'));
     if (weight == null || height == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi berat badan dan tinggi badan dengan angka.')),
+        const SnackBar(
+          content: Text('Isi berat badan dan tinggi badan dengan angka.'),
+        ),
       );
       return;
     }
-    await ref.read(kaderDashboardControllerProvider.notifier).saveMeasurement(
-          weight: weight,
-          height: height,
-        );
+    await ref
+        .read(kaderDashboardControllerProvider.notifier)
+        .saveMeasurement(weight: weight, height: height);
   }
 }
 
 class _ChildRow extends StatelessWidget {
-  const _ChildRow({required this.child});
+  const _ChildRow({required this.child, required this.onSelect});
 
   final Balita child;
+  final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
     return LedgerListRow(
       title: child.namaBalita,
       subtitle: 'Ibu: ${child.namaIbu}',
-      trailing: const StatusBadge(
-        label: 'Input',
-        color: LedgerColors.primary,
-        softColor: LedgerColors.primarySoft,
+      trailing: TextButton(
+        onPressed: onSelect,
+        child: const Text('Pilih ukur'),
       ),
     );
+  }
+}
+
+class _CreateBalitaPage extends ConsumerStatefulWidget {
+  const _CreateBalitaPage({required this.posyanduId});
+
+  final int posyanduId;
+
+  @override
+  ConsumerState<_CreateBalitaPage> createState() => _CreateBalitaPageState();
+}
+
+class _CreateBalitaPageState extends ConsumerState<_CreateBalitaPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _nikController = TextEditingController();
+  final _birthDateController = TextEditingController();
+  final _motherController = TextEditingController();
+  final _motherNikController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _incomeController = TextEditingController();
+  final _familyController = TextEditingController();
+  String _gender = 'L';
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nikController.dispose();
+    _birthDateController.dispose();
+    _motherController.dispose();
+    _motherNikController.dispose();
+    _addressController.dispose();
+    _incomeController.dispose();
+    _familyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tambah Balita')),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const SectionTitle('Data balita'),
+              TextFormField(
+                key: const Key('childNameField'),
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Nama balita'),
+                validator: _required,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('childNikField'),
+                controller: _nikController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'NIK balita (opsional)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('birthDateField'),
+                controller: _birthDateController,
+                keyboardType: TextInputType.datetime,
+                decoration: const InputDecoration(
+                  labelText: 'Tanggal lahir',
+                  hintText: 'YYYY-MM-DD',
+                ),
+                validator: _required,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                key: const Key('genderDropdown'),
+                initialValue: _gender,
+                decoration: const InputDecoration(labelText: 'Jenis kelamin'),
+                items: const [
+                  DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
+                  DropdownMenuItem(value: 'P', child: Text('Perempuan')),
+                ],
+                onChanged: (value) => setState(() => _gender = value ?? 'L'),
+              ),
+              const SizedBox(height: 20),
+              const SectionTitle('Data keluarga'),
+              TextFormField(
+                key: const Key('motherNameField'),
+                controller: _motherController,
+                decoration: const InputDecoration(labelText: 'Nama ibu'),
+                validator: _required,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('motherNikField'),
+                controller: _motherNikController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'NIK ibu (opsional)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('addressField'),
+                controller: _addressController,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Alamat'),
+                validator: _required,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('incomeField'),
+                controller: _incomeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Penghasilan keluarga',
+                ),
+                validator: _positiveInt,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const Key('familyCountField'),
+                controller: _familyController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Jumlah keluarga'),
+                validator: _positiveInt,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const Key('saveBalitaButton'),
+                onPressed: _saving ? null : _submit,
+                child: Text(_saving ? 'Menyimpan...' : 'Simpan Balita'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _required(String? value) {
+    return value?.trim().isEmpty ?? true ? 'Wajib diisi.' : null;
+  }
+
+  String? _positiveInt(String? value) {
+    final parsed = int.tryParse(value?.trim() ?? '');
+    return parsed == null || parsed < 1
+        ? 'Isi dengan angka lebih dari 0.'
+        : null;
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(kaderDashboardControllerProvider.notifier)
+          .createBalita(
+            CreateBalitaRequest(
+              namaBalita: _nameController.text.trim(),
+              nikBalita: _nikController.text.trim(),
+              tanggalLahir: _birthDateController.text.trim(),
+              jenisKelamin: _gender,
+              namaIbu: _motherController.text.trim(),
+              nikIbu: _motherNikController.text.trim(),
+              alamat: _addressController.text.trim(),
+              penghasilan: int.parse(_incomeController.text.trim()),
+              jumlahKeluarga: int.parse(_familyController.text.trim()),
+              posyanduId: widget.posyanduId,
+            ),
+          );
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import '../../domain/entities/app_notification.dart';
 import '../../domain/entities/balita.dart';
+import '../../domain/entities/create_balita_request.dart';
 import '../../domain/entities/kader_dashboard_data.dart';
 import '../../domain/entities/measurement_result.dart';
 import '../../domain/entities/posyandu_session.dart';
@@ -17,7 +18,9 @@ class KaderRepositoryImpl implements KaderRepository {
     final session = await activeSession();
     final children = await searchChildren();
     final notifications = await this.notifications();
-    final screeningRows = session == null ? <ScreeningItem>[] : await screening(session.id);
+    final screeningRows = session == null
+        ? <ScreeningItem>[]
+        : await screening(session.id);
     return KaderDashboardData(
       session: session,
       children: children,
@@ -32,6 +35,11 @@ class KaderRepositoryImpl implements KaderRepository {
   @override
   Future<List<Balita>> searchChildren({String search = ''}) {
     return _remoteDataSource.children(search: search);
+  }
+
+  @override
+  Future<Balita> createBalita(CreateBalitaRequest request) {
+    return _remoteDataSource.createBalita(request);
   }
 
   @override

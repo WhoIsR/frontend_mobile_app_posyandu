@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/balita.dart';
+import '../../domain/entities/create_balita_request.dart';
 import '../../domain/entities/kader_dashboard_data.dart';
 import '../../domain/entities/measurement_result.dart';
 
@@ -10,6 +11,7 @@ class KaderDashboardState {
   const KaderDashboardState({
     this.data,
     this.lastMeasurement,
+    this.selectedChild,
     this.isLoading = true,
     this.isSaving = false,
     this.message,
@@ -18,6 +20,7 @@ class KaderDashboardState {
 
   final KaderDashboardData? data;
   final MeasurementResult? lastMeasurement;
+  final Balita? selectedChild;
   final bool isLoading;
   final bool isSaving;
   final String? message;
@@ -28,6 +31,7 @@ class KaderDashboardState {
   KaderDashboardState copyWith({
     KaderDashboardData? data,
     MeasurementResult? lastMeasurement,
+    Balita? selectedChild,
     bool? isLoading,
     bool? isSaving,
     String? message,
@@ -37,6 +41,7 @@ class KaderDashboardState {
     return KaderDashboardState(
       data: data ?? this.data,
       lastMeasurement: lastMeasurement ?? this.lastMeasurement,
+      selectedChild: selectedChild ?? this.selectedChild,
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       message: clearMessage ? null : message ?? this.message,
@@ -78,9 +83,48 @@ class KaderDashboardController extends Notifier<KaderDashboardState> {
           screening: current.screening,
           notifications: current.notifications,
         ),
+        selectedChild: children.isEmpty ? null : state.selectedChild,
       );
     } catch (error) {
       state = state.copyWith(message: _errorText(error), isError: true);
+    }
+  }
+
+  void selectChild(Balita child) {
+    state = state.copyWith(
+      selectedChild: child,
+      message: '${child.namaBalita} dipilih untuk pengukuran.',
+      isError: false,
+    );
+  }
+
+  Future<void> createBalita(CreateBalitaRequest request) async {
+    state = state.copyWith(isSaving: true, clearMessage: true);
+    try {
+      final created = await ref.read(createBalitaProvider)(request);
+      final children = await ref.read(searchBalitaProvider)('');
+      final current = state.data;
+      state = KaderDashboardState(
+        data: current == null
+            ? null
+            : KaderDashboardData(
+                session: current.session,
+                children: children,
+                screening: current.screening,
+                notifications: current.notifications,
+              ),
+        selectedChild: created,
+        lastMeasurement: state.lastMeasurement,
+        isLoading: false,
+        message: 'Balita baru tersimpan.',
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        message: _errorText(error),
+        isError: true,
+      );
+      rethrow;
     }
   }
 
@@ -89,9 +133,13 @@ class KaderDashboardController extends Notifier<KaderDashboardState> {
     required double height,
   }) async {
     final data = state.data;
-    if (data?.session == null || data!.children.isEmpty) {
+    final session = data?.session;
+    final child =
+        state.selectedChild ??
+        (data?.children.isEmpty ?? true ? null : data!.children.first);
+    if (session == null || child == null) {
       state = state.copyWith(
-        message: 'Sesi aktif atau data balita belum tersedia.',
+        message: 'Pilih balita dulu sebelum menyimpan pengukuran.',
         isError: true,
       );
       return;
@@ -99,20 +147,23 @@ class KaderDashboardController extends Notifier<KaderDashboardState> {
     state = state.copyWith(isSaving: true, clearMessage: true);
     try {
       final saved = await ref.read(saveMeasurementProvider)(
-        sessionId: data.session!.id,
-        childId: data.children.first.id,
+        sessionId: session.id,
+        childId: child.id,
         weight: weight,
         height: height,
       );
-      final screening = await ref.read(kaderRepositoryProvider).screening(data.session!.id);
+      final screening = await ref
+          .read(kaderRepositoryProvider)
+          .screening(session.id);
       state = KaderDashboardState(
         data: KaderDashboardData(
-          session: data.session,
-          children: data.children,
+          session: session,
+          children: data?.children ?? const [],
           screening: screening,
-          notifications: data.notifications,
+          notifications: data?.notifications ?? const [],
         ),
         lastMeasurement: saved,
+        selectedChild: child,
         isLoading: false,
         message: saved.predictionFailed
             ? 'Pengukuran tersimpan. Prediksi dapat dicoba ulang saat koneksi stabil.'
@@ -134,7 +185,9 @@ class KaderDashboardController extends Notifier<KaderDashboardState> {
     if (measurement == null || data?.session == null) return;
     try {
       final saved = await ref.read(retryPredictionProvider)(measurement.id);
-      final screening = await ref.read(kaderRepositoryProvider).screening(data!.session!.id);
+      final screening = await ref
+          .read(kaderRepositoryProvider)
+          .screening(data!.session!.id);
       state = state.copyWith(
         data: KaderDashboardData(
           session: data.session,
