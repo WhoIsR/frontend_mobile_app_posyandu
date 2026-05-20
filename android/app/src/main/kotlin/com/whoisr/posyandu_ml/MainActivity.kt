@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.whoisr.posyandu_ml
 
 import io.flutter.embedding.android.FlutterActivity
 

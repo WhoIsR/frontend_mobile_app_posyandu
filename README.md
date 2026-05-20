@@ -39,6 +39,10 @@ flutter analyze
 flutter test
 ```
 
+## Demo Release
+
+Panduan build APK demo, install ke Pixel 6 emulator, akun demo, dan checklist flow ada di `docs/demo_release_mobile.md`.
+
 ## Guardrail PRD
 
 - Repo ini tidak membawa Laravel, Flask, model ML, atau file deployment VPS.
