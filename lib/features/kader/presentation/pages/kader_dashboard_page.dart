@@ -123,11 +123,15 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
             ? 'Belum ada sesi berjalan untuk Posyandu ini.'
             : 'Sesi ${data!.session!.tanggal} | Status ${data.session!.status}',
         accent: LedgerColors.primary,
-        child: Text(
-          showMeasurement
-              ? 'Input Pengukuran'
-              : 'Tarik ke bawah untuk memuat ulang sesi.',
-        ),
+        child: showMeasurement
+            ? const Row(
+                children: [
+                  Icon(Icons.straighten_outlined, color: LedgerColors.primary),
+                  SizedBox(width: 8),
+                  Text('Pengukuran balita'),
+                ],
+              )
+            : const Text('Tarik ke bawah untuk memuat ulang sesi.'),
       ),
       if (showMeasurement && state != null) ...[
         const SizedBox(height: 16),
@@ -142,12 +146,23 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
   ) {
     return [
       Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Expanded(child: SectionTitle('Cari balita')),
-          TextButton.icon(
-            onPressed: _openCreateBalita,
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-            label: const Text('Tambah Balita'),
+          SizedBox(
+            height: 40,
+            child: OutlinedButton.icon(
+              onPressed: _openCreateBalita,
+              icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+              label: const Text('Tambah Balita'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 40),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -304,9 +319,16 @@ class _ChildRow extends StatelessWidget {
     return LedgerListRow(
       title: child.namaBalita,
       subtitle: 'Ibu: ${child.namaIbu}',
-      trailing: TextButton(
-        onPressed: onSelect,
-        child: const Text('Pilih ukur'),
+      trailing: SizedBox(
+        height: 36,
+        child: TextButton.icon(
+          onPressed: onSelect,
+          icon: const Icon(Icons.straighten_outlined, size: 16),
+          label: const Text('Ukur'),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+        ),
       ),
     );
   }
@@ -355,89 +377,129 @@ class _CreateBalitaPageState extends ConsumerState<_CreateBalitaPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
               const SectionTitle('Data balita'),
-              TextFormField(
-                key: const Key('childNameField'),
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nama balita'),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('childNikField'),
-                controller: _nikController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'NIK balita (opsional)',
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        key: const Key('childNameField'),
+                        controller: _nameController,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama balita',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('childNikField'),
+                        controller: _nikController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'NIK balita (opsional)',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('birthDateField'),
+                        controller: _birthDateController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.datetime,
+                        decoration: const InputDecoration(
+                          labelText: 'Tanggal lahir',
+                          hintText: 'YYYY-MM-DD',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        key: const Key('genderDropdown'),
+                        initialValue: _gender,
+                        decoration: const InputDecoration(
+                          labelText: 'Jenis kelamin',
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'L',
+                            child: Text('Laki-laki'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'P',
+                            child: Text('Perempuan'),
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _gender = value ?? 'L'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('birthDateField'),
-                controller: _birthDateController,
-                keyboardType: TextInputType.datetime,
-                decoration: const InputDecoration(
-                  labelText: 'Tanggal lahir',
-                  hintText: 'YYYY-MM-DD',
-                ),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                key: const Key('genderDropdown'),
-                initialValue: _gender,
-                decoration: const InputDecoration(labelText: 'Jenis kelamin'),
-                items: const [
-                  DropdownMenuItem(value: 'L', child: Text('Laki-laki')),
-                  DropdownMenuItem(value: 'P', child: Text('Perempuan')),
-                ],
-                onChanged: (value) => setState(() => _gender = value ?? 'L'),
-              ),
-              const SizedBox(height: 20),
               const SectionTitle('Data keluarga'),
-              TextFormField(
-                key: const Key('motherNameField'),
-                controller: _motherController,
-                decoration: const InputDecoration(labelText: 'Nama ibu'),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('motherNikField'),
-                controller: _motherNikController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'NIK ibu (opsional)',
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        key: const Key('motherNameField'),
+                        controller: _motherController,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama ibu',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('motherNikField'),
+                        controller: _motherNikController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'NIK ibu (opsional)',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('addressField'),
+                        controller: _addressController,
+                        textInputAction: TextInputAction.next,
+                        minLines: 2,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Alamat'),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('incomeField'),
+                        controller: _incomeController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Penghasilan keluarga',
+                        ),
+                        validator: _positiveInt,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('familyCountField'),
+                        controller: _familyController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Jumlah keluarga',
+                        ),
+                        validator: _positiveInt,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('addressField'),
-                controller: _addressController,
-                minLines: 2,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Alamat'),
-                validator: _required,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('incomeField'),
-                controller: _incomeController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Penghasilan keluarga',
-                ),
-                validator: _positiveInt,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('familyCountField'),
-                controller: _familyController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Jumlah keluarga'),
-                validator: _positiveInt,
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -525,28 +587,68 @@ class _MeasurementPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              child == null
-                  ? 'Pilih balita dari hasil pencarian.'
-                  : '${child!.namaBalita}\nIbu: ${child!.namaIbu}',
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: LedgerColors.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.child_care_outlined,
+                    color: LedgerColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    child == null
+                        ? 'Pilih balita dari register.'
+                        : '${child!.namaBalita}\nIbu: ${child!.namaIbu}',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            TextField(
-              key: const Key('weightField'),
-              controller: weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Berat badan (kg)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('heightField'),
-              controller: heightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Tinggi badan (cm)'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const Key('weightField'),
+                    controller: weightController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Berat badan',
+                      suffixText: 'kg',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    key: const Key('heightField'),
+                    controller: heightController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Tinggi badan',
+                      suffixText: 'cm',
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             FilledButton(

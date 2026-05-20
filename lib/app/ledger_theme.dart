@@ -20,6 +20,14 @@ class LedgerTheme {
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: LedgerColors.paper,
+      visualDensity: VisualDensity.standard,
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        bodyLarge: TextStyle(fontSize: 15, height: 1.35),
+        bodyMedium: TextStyle(fontSize: 14, height: 1.35),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      ),
       colorScheme:
           ColorScheme.fromSeed(
             seedColor: LedgerColors.primary,
@@ -36,6 +44,25 @@ class LedgerTheme {
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: LedgerColors.ink,
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 76,
+        backgroundColor: const Color(0xFFEAF1EA),
+        indicatorColor: LedgerColors.primarySoft,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            color: LedgerColors.ink,
+            fontSize: 12,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w600,
+          ),
+        ),
       ),
       cardTheme: CardThemeData(
         color: LedgerColors.surface,
@@ -49,6 +76,10 @@ class LedgerTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: LedgerColors.surface,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: LedgerColors.line),
@@ -62,6 +93,20 @@ class LedgerTheme {
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
           backgroundColor: LedgerColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: LedgerColors.primary,
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: LedgerColors.primary,
+          side: const BorderSide(color: LedgerColors.primary),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),

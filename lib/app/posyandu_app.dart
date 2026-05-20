@@ -52,6 +52,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
   @override
   Widget build(BuildContext context) {
     final isKader = widget.user.role == UserRole.kader;
+    final title = isKader ? _kaderTitles[_index] : _bidanTitles[_index];
     final pages = isKader
         ? const [
             KaderDashboardPage(),
@@ -69,7 +70,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
           ];
     return Scaffold(
       appBar: AppBar(
-        title: Text(isKader ? 'Beranda Kader' : 'Beranda Bidan'),
+        title: Text(title),
         actions: [
           IconButton(
             tooltip: 'Keluar',
@@ -94,16 +95,50 @@ class _RoleShellState extends ConsumerState<RoleShell> {
 
 const _kaderDestinations = [
   NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  NavigationDestination(icon: Icon(Icons.event_available_outlined), label: 'Sesi'),
+  NavigationDestination(
+    icon: Icon(Icons.event_available_outlined),
+    label: 'Sesi',
+  ),
   NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
-  NavigationDestination(icon: Icon(Icons.fact_check_outlined), label: 'Skrining'),
-  NavigationDestination(icon: Icon(Icons.notifications_outlined), label: 'Notifikasi'),
+  NavigationDestination(
+    icon: Icon(Icons.fact_check_outlined),
+    label: 'Skrining',
+  ),
+  NavigationDestination(
+    icon: Icon(Icons.notifications_outlined),
+    label: 'Notifikasi',
+  ),
+];
+
+const _kaderTitles = [
+  'Beranda Kader',
+  'Sesi Posyandu',
+  'Register Balita',
+  'Skrining Hari Ini',
+  'Notifikasi Kader',
 ];
 
 const _bidanDestinations = [
   NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  NavigationDestination(icon: Icon(Icons.assignment_late_outlined), label: 'Rujukan'),
+  NavigationDestination(
+    icon: Icon(Icons.assignment_late_outlined),
+    label: 'Rujukan',
+  ),
   NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'PMT'),
-  NavigationDestination(icon: Icon(Icons.description_outlined), label: 'Laporan'),
-  NavigationDestination(icon: Icon(Icons.notifications_outlined), label: 'Notifikasi'),
+  NavigationDestination(
+    icon: Icon(Icons.description_outlined),
+    label: 'Laporan',
+  ),
+  NavigationDestination(
+    icon: Icon(Icons.notifications_outlined),
+    label: 'Notifikasi',
+  ),
+];
+
+const _bidanTitles = [
+  'Beranda Bidan',
+  'Rujukan',
+  'PMT',
+  'Laporan',
+  'Notifikasi Bidan',
 ];
