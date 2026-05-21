@@ -12,6 +12,7 @@ import 'package:mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mobile/features/admin/domain/entities/admin_account.dart';
 import 'package:mobile/features/admin/domain/entities/admin_posyandu.dart';
+import 'package:mobile/features/admin/domain/entities/admin_schedule.dart';
 import 'package:mobile/features/admin/domain/repositories/admin_repository.dart';
 import 'package:mobile/features/bidan/domain/entities/bidan_dashboard_data.dart';
 import 'package:mobile/features/bidan/domain/entities/pmt_stock.dart';
@@ -391,6 +392,41 @@ void main() {
     await tester.tap(find.text('Posyandu').last);
     await tester.pumpAndSettle();
     expect(find.text('Posyandu Melati 03'), findsOneWidget);
+  });
+
+  testWidgets('Admin Posyandu menampilkan relasi dan sesi bisa diatur', (
+    tester,
+  ) async {
+    final admin = FakeAdminRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin), admin: admin),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    await tester.tap(find.text('Posyandu').last);
+    await tester.pumpAndSettle();
+    expect(find.text('1 bidan'), findsOneWidget);
+    expect(find.text('1 kader'), findsOneWidget);
+    expect(find.text('1 jadwal'), findsOneWidget);
+    expect(find.text('Jadwal/Sesi'), findsOneWidget);
+
+    await tester.tap(find.text('Sesi').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Jadwal & sesi'), findsOneWidget);
+    expect(find.text('Belum ada sesi aktif'), findsOneWidget);
+    expect(find.text('Mulai Sesi'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('startAdminSessionButton')),
+    );
+    tester
+        .widget<FilledButton>(find.byKey(const Key('startAdminSessionButton')))
+        .onPressed
+        ?.call();
+    await tester.pumpAndSettle();
+    expect(admin.startedScheduleId, 1);
+    expect(find.text('Sesi sedang berjalan'), findsOneWidget);
   });
 
   testWidgets('Admin bisa tambah dan nonaktifkan akun dari action sheet', (
@@ -942,6 +978,8 @@ class FakeAdminRepository implements AdminRepository {
   String? createdAccountName;
   String? updatedAccountStatus;
   AdminAccount? createdAccount;
+  int? startedScheduleId;
+  AdminSession? session;
 
   @override
   Future<List<AdminAccount>> accounts() async {
@@ -989,6 +1027,24 @@ class FakeAdminRepository implements AdminRepository {
       ),
     ];
   }
+
+  @override
+  Future<List<AdminSchedule>> schedules() async {
+    return const [
+      AdminSchedule(
+        id: 1,
+        posyanduId: 1,
+        date: '2026-03-10',
+        startTime: '08:00',
+        endTime: '11:00',
+        location: 'Balai Desa Melati',
+        note: 'Penimbangan rutin',
+      ),
+    ];
+  }
+
+  @override
+  Future<AdminSession?> activeSession() async => session;
 
   @override
   Future<Uint8List> downloadReport(
@@ -1044,5 +1100,56 @@ class FakeAdminRepository implements AdminRepository {
       village: village,
       district: district,
     );
+  }
+
+  @override
+  Future<AdminSchedule> saveSchedule({
+    int? id,
+    required int posyanduId,
+    required String date,
+    required String startTime,
+    required String endTime,
+    required String location,
+    required String note,
+  }) async {
+    return AdminSchedule(
+      id: id ?? 2,
+      posyanduId: posyanduId,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      location: location,
+      note: note,
+    );
+  }
+
+  @override
+  Future<AdminSession> startSession({
+    int? scheduleId,
+    required int posyanduId,
+    required String date,
+  }) async {
+    startedScheduleId = scheduleId;
+    session = AdminSession(
+      id: 7,
+      posyanduId: posyanduId,
+      date: date,
+      status: 'berjalan',
+      scheduleId: scheduleId,
+    );
+    return session!;
+  }
+
+  @override
+  Future<AdminSession> closeSession(int id) async {
+    final closed = AdminSession(
+      id: id,
+      posyanduId: session?.posyanduId ?? 1,
+      date: session?.date ?? '2026-03-10',
+      status: 'selesai',
+      scheduleId: session?.scheduleId,
+    );
+    session = null;
+    return closed;
   }
 }

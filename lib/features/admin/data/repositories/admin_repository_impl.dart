@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import '../../domain/entities/admin_account.dart';
 import '../../domain/entities/admin_posyandu.dart';
+import '../../domain/entities/admin_schedule.dart';
 import '../../domain/repositories/admin_repository.dart';
 import '../datasources/admin_remote_data_source.dart';
 
@@ -15,6 +16,12 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Future<List<AdminPosyandu>> posyandu() => _remoteDataSource.posyandu();
+
+  @override
+  Future<List<AdminSchedule>> schedules() => _remoteDataSource.schedules();
+
+  @override
+  Future<AdminSession?> activeSession() => _remoteDataSource.activeSession();
 
   @override
   Future<AdminAccount> saveAccount({
@@ -53,6 +60,44 @@ class AdminRepositoryImpl implements AdminRepository {
       district: district,
     );
   }
+
+  @override
+  Future<AdminSchedule> saveSchedule({
+    int? id,
+    required int posyanduId,
+    required String date,
+    required String startTime,
+    required String endTime,
+    required String location,
+    required String note,
+  }) {
+    return _remoteDataSource.saveSchedule(
+      id: id,
+      posyanduId: posyanduId,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+      location: location,
+      note: note,
+    );
+  }
+
+  @override
+  Future<AdminSession> startSession({
+    int? scheduleId,
+    required int posyanduId,
+    required String date,
+  }) {
+    return _remoteDataSource.startSession(
+      scheduleId: scheduleId,
+      posyanduId: posyanduId,
+      date: date,
+    );
+  }
+
+  @override
+  Future<AdminSession> closeSession(int id) =>
+      _remoteDataSource.closeSession(id);
 
   @override
   Future<Uint8List> downloadReport(

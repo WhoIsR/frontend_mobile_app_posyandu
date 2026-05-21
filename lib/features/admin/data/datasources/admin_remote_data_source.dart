@@ -24,6 +24,19 @@ class AdminRemoteDataSource {
     return adminRows(json).map(AdminPosyanduModel.fromJson).toList();
   }
 
+  Future<List<AdminScheduleModel>> schedules() async {
+    final json = await _apiClient.getJson(
+      '/jadwal',
+      query: {'per_page': '100'},
+    );
+    return adminRows(json).map(AdminScheduleModel.fromJson).toList();
+  }
+
+  Future<AdminSessionModel?> activeSession() async {
+    final json = await _apiClient.getJson('/sesi/aktif');
+    return json.isEmpty ? null : AdminSessionModel.fromJson(json);
+  }
+
   Future<AdminAccountModel> saveAccount({
     int? id,
     required String name,
@@ -65,6 +78,50 @@ class AdminRemoteDataSource {
         ? await _apiClient.postJson('/admin/posyandu', body: body)
         : await _apiClient.putJson('/admin/posyandu/$id', body: body);
     return AdminPosyanduModel.fromJson(json);
+  }
+
+  Future<AdminScheduleModel> saveSchedule({
+    int? id,
+    required int posyanduId,
+    required String date,
+    required String startTime,
+    required String endTime,
+    required String location,
+    required String note,
+  }) async {
+    final body = {
+      'posyandu_id': posyanduId,
+      'tanggal': date,
+      if (startTime.isNotEmpty) 'jam_mulai': startTime,
+      if (endTime.isNotEmpty) 'jam_selesai': endTime,
+      'lokasi': location,
+      if (note.isNotEmpty) 'keterangan': note,
+    };
+    final json = id == null
+        ? await _apiClient.postJson('/jadwal', body: body)
+        : await _apiClient.putJson('/jadwal/$id', body: body);
+    return AdminScheduleModel.fromJson(json);
+  }
+
+  Future<AdminSessionModel> startSession({
+    int? scheduleId,
+    required int posyanduId,
+    required String date,
+  }) async {
+    final json = await _apiClient.postJson(
+      '/sesi',
+      body: {
+        'jadwal_posyandu_id': scheduleId,
+        'posyandu_id': posyanduId,
+        'tanggal': date,
+      },
+    );
+    return AdminSessionModel.fromJson(json);
+  }
+
+  Future<AdminSessionModel> closeSession(int id) async {
+    final json = await _apiClient.postJson('/sesi/$id/selesai');
+    return AdminSessionModel.fromJson(json);
   }
 
   Future<Uint8List> downloadReport(

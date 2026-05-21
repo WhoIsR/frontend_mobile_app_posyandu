@@ -6,6 +6,7 @@ import '../../../../app/ledger_theme.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
 import '../../domain/entities/admin_account.dart';
 import '../../domain/entities/admin_posyandu.dart';
+import '../../domain/entities/admin_schedule.dart';
 import '../controllers/admin_dashboard_controller.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
@@ -21,6 +22,7 @@ class AdminDashboardPage extends ConsumerWidget {
     final sections = switch (focus) {
       'akun' => _accounts(context, ref, state),
       'posyandu' => _posyandu(context, ref, state),
+      'sesi' => _sessions(context, ref, state),
       'laporan' => _reports(context, ref, state),
       _ => _home(context, ref, state),
     };
@@ -45,6 +47,7 @@ class AdminDashboardPage extends ConsumerWidget {
     final inactiveCount = state.accounts
         .where((row) => row.status == 'nonaktif')
         .length;
+    final activeSession = state.activeSession;
     return [
       const PageHeader(
         title: 'Kontrol operasional',
@@ -104,9 +107,18 @@ class AdminDashboardPage extends ConsumerWidget {
       ),
       LedgerListRow(
         title: 'Posyandu',
-        subtitle: '${state.posyandu.length} Posyandu tercatat.',
+        subtitle:
+            '${state.posyandu.length} wilayah, terhubung ke akun dan balita.',
         trailing: const Icon(Icons.arrow_forward),
         onTap: () => onNavigate?.call('posyandu'),
+      ),
+      LedgerListRow(
+        title: activeSession == null ? 'Jadwal & sesi' : 'Sesi sedang aktif',
+        subtitle: activeSession == null
+            ? '${state.schedules.length} jadwal tercatat. Mulai sesi dari sini.'
+            : 'Posyandu ${activeSession.posyanduId} | ${activeSession.date}',
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => onNavigate?.call('sesi'),
       ),
       LedgerListRow(
         title: 'Laporan PDF',
@@ -176,14 +188,19 @@ class AdminDashboardPage extends ConsumerWidget {
         const EmptyState(text: 'Belum ada Posyandu.')
       else
         ...state.posyandu.map(
-          (row) => LedgerListRow(
-            title: row.name,
-            subtitle: [
-              if (row.village?.isNotEmpty ?? false) row.village,
-              if (row.district?.isNotEmpty ?? false) row.district,
-            ].whereType<String>().join(' | '),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _openPosyanduForm(context, ref, row),
+          (row) => _AdminPosyanduCard(
+            posyandu: row,
+            bidanCount: _countAccounts(state, row.id, 'bidan'),
+            kaderCount: _countAccounts(state, row.id, 'kader'),
+            scheduleCount: state.schedules
+                .where((schedule) => schedule.posyanduId == row.id)
+                .length,
+            isActive:
+                state.activeSession != null &&
+                state.activeSession!.posyanduId == row.id,
+            onOpenAccounts: () => onNavigate?.call('akun'),
+            onOpenSessions: () => onNavigate?.call('sesi'),
+            onEdit: () => _openPosyanduForm(context, ref, row),
           ),
         ),
       if (state.message != null) ...[
@@ -191,6 +208,96 @@ class AdminDashboardPage extends ConsumerWidget {
         InlineMessage(text: state.message!, isError: state.isError),
       ],
     ];
+  }
+
+  int _countAccounts(AdminDashboardState state, int posyanduId, String role) {
+    return state.accounts
+        .where(
+          (account) =>
+              account.role == role &&
+              account.status == 'aktif' &&
+              account.posyanduId == posyanduId,
+        )
+        .length;
+  }
+
+  List<Widget> _sessions(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
+    final active = state.activeSession;
+    return [
+      PageHeader(
+        title: 'Jadwal & sesi',
+        subtitle:
+            'Di sini Admin/Bidan menyiapkan jadwal Posyandu dan membuka sesi aktif yang dipakai Kader untuk input BB/TB.',
+        icon: Icons.event_available_outlined,
+        action: FilledButton.icon(
+          onPressed: state.posyandu.isEmpty
+              ? null
+              : () => _openScheduleForm(context, ref, state),
+          icon: const Icon(Icons.add_task_outlined),
+          label: const Text('Buat Jadwal'),
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (active == null)
+        LedgerPanel(
+          title: 'Belum ada sesi aktif',
+          subtitle:
+              'Kader baru bisa input pengukuran setelah sesi Posyandu dibuka.',
+          accent: LedgerColors.attention,
+          child: const Text(
+            'Pilih jadwal di bawah lalu tekan Mulai Sesi.',
+            style: TextStyle(color: LedgerColors.inkSoft),
+          ),
+        )
+      else
+        LedgerPanel(
+          title: 'Sesi sedang berjalan',
+          subtitle:
+              '${_posyanduName(state, active.posyanduId)} | ${active.date}',
+          accent: LedgerColors.primary,
+          child: FilledButton.icon(
+            onPressed: state.isSaving
+                ? null
+                : () => ref
+                      .read(adminDashboardControllerProvider.notifier)
+                      .closeActiveSession(),
+            icon: const Icon(Icons.check_circle_outline),
+            label: const Text('Selesaikan Sesi'),
+          ),
+        ),
+      const SectionTitle('Jadwal Posyandu'),
+      if (state.schedules.isEmpty)
+        const EmptyState(text: 'Belum ada jadwal. Buat jadwal pertama dulu.')
+      else
+        ...state.schedules.map(
+          (schedule) => _AdminScheduleCard(
+            schedule: schedule,
+            posyanduName: _posyanduName(state, schedule.posyanduId),
+            isActive: active?.scheduleId == schedule.id,
+            onStart: state.isSaving
+                ? null
+                : () => ref
+                      .read(adminDashboardControllerProvider.notifier)
+                      .startSession(schedule),
+            onEdit: () => _openScheduleForm(context, ref, state, schedule),
+          ),
+        ),
+      if (state.message != null) ...[
+        const SizedBox(height: 12),
+        InlineMessage(text: state.message!, isError: state.isError),
+      ],
+    ];
+  }
+
+  String _posyanduName(AdminDashboardState state, int id) {
+    for (final row in state.posyandu) {
+      if (row.id == id) return row.name;
+    }
+    return 'Posyandu $id';
   }
 
   List<Widget> _reports(
@@ -270,46 +377,64 @@ class AdminDashboardPage extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Aksi akun',
-                style: Theme.of(sheetContext).textTheme.titleLarge,
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Aksi akun',
+                    style: Theme.of(sheetContext).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    account.name,
+                    style: const TextStyle(color: LedgerColors.inkSoft),
+                  ),
+                  const SizedBox(height: 12),
+                  _AccountActionSummary(account: account),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        _openAccountForm(context, ref, account);
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Edit akun'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        _openStatusConfirmation(
+                          context,
+                          ref,
+                          account,
+                          nextStatus,
+                        );
+                      },
+                      icon: Icon(
+                        nextStatus == 'nonaktif'
+                            ? Icons.block
+                            : Icons.check_circle_outline,
+                      ),
+                      label: Text(
+                        nextStatus == 'nonaktif' ? 'Nonaktifkan' : 'Aktifkan',
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                account.name,
-                style: const TextStyle(color: LedgerColors.inkSoft),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  _openAccountForm(context, ref, account);
-                },
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit akun'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  _openStatusConfirmation(context, ref, account, nextStatus);
-                },
-                icon: Icon(
-                  nextStatus == 'nonaktif'
-                      ? Icons.block
-                      : Icons.check_circle_outline,
-                ),
-                label: Text(
-                  nextStatus == 'nonaktif' ? 'Nonaktifkan' : 'Aktifkan',
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -327,52 +452,67 @@ class AdminDashboardPage extends ConsumerWidget {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                disabling ? 'Nonaktifkan akun?' : 'Aktifkan akun?',
-                style: Theme.of(sheetContext).textTheme.titleLarge,
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    disabling ? 'Nonaktifkan akun?' : 'Aktifkan akun?',
+                    style: Theme.of(sheetContext).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    disabling
+                        ? '${account.name} tidak bisa login lagi, tapi histori pengukuran dan validasi tetap aman.'
+                        : '${account.name} akan bisa login kembali.',
+                    style: const TextStyle(
+                      color: LedgerColors.inkSoft,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        await ref
+                            .read(adminDashboardControllerProvider.notifier)
+                            .saveAccount(
+                              id: account.id,
+                              name: account.name,
+                              nikNip: account.nikNip,
+                              role: account.role,
+                              posyanduId: account.posyanduId,
+                              status: nextStatus,
+                            );
+                        if (sheetContext.mounted) {
+                          Navigator.of(sheetContext).pop();
+                        }
+                      },
+                      icon: Icon(
+                        disabling ? Icons.block : Icons.check_circle_outline,
+                      ),
+                      label: Text(
+                        disabling ? 'Ya, nonaktifkan' : 'Ya, aktifkan',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('Batal'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                disabling
-                    ? '${account.name} tidak bisa login lagi, tapi histori pengukuran dan validasi tetap aman.'
-                    : '${account.name} akan bisa login kembali.',
-                style: const TextStyle(
-                  color: LedgerColors.inkSoft,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () async {
-                  await ref
-                      .read(adminDashboardControllerProvider.notifier)
-                      .saveAccount(
-                        id: account.id,
-                        name: account.name,
-                        nikNip: account.nikNip,
-                        role: account.role,
-                        posyanduId: account.posyanduId,
-                        status: nextStatus,
-                      );
-                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                },
-                icon: Icon(
-                  disabling ? Icons.block : Icons.check_circle_outline,
-                ),
-                label: Text(disabling ? 'Ya, nonaktifkan' : 'Ya, aktifkan'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () => Navigator.of(sheetContext).pop(),
-                child: const Text('Batal'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -394,83 +534,90 @@ class AdminDashboardPage extends ConsumerWidget {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              Text(
-                account == null ? 'Tambah Akun' : 'Edit akun',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                key: const Key('adminAccountNameField'),
-                controller: name,
-                decoration: const InputDecoration(labelText: 'Nama'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                key: const Key('adminAccountNikField'),
-                controller: nik,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'NIK / NIP'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                key: const Key('adminAccountPasswordField'),
-                controller: password,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: account == null
-                      ? 'Password'
-                      : 'Password baru (opsional)',
+        builder: (context, setState) => SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Text(
+                  account == null ? 'Tambah Akun' : 'Edit akun',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: role,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: const [
-                  DropdownMenuItem(value: 'kader', child: Text('Kader')),
-                  DropdownMenuItem(value: 'bidan', child: Text('Bidan')),
-                ],
-                onChanged: (value) => setState(() => role = value ?? 'kader'),
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: status,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
-                  DropdownMenuItem(value: 'aktif', child: Text('Aktif')),
-                  DropdownMenuItem(value: 'nonaktif', child: Text('Nonaktif')),
-                ],
-                onChanged: (value) => setState(() => status = value ?? 'aktif'),
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                key: const Key('saveAdminAccountButton'),
-                onPressed: () async {
-                  await ref
-                      .read(adminDashboardControllerProvider.notifier)
-                      .saveAccount(
-                        id: account?.id,
-                        name: name.text.trim(),
-                        nikNip: nik.text.trim(),
-                        password: password.text.trim(),
-                        role: role,
-                        posyanduId: account?.posyanduId,
-                        status: status,
-                      );
-                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                },
-                child: const Text('Simpan Akun'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('adminAccountNameField'),
+                  controller: name,
+                  decoration: const InputDecoration(labelText: 'Nama'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const Key('adminAccountNikField'),
+                  controller: nik,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'NIK / NIP'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const Key('adminAccountPasswordField'),
+                  controller: password,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: account == null
+                        ? 'Password'
+                        : 'Password baru (opsional)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: role,
+                  decoration: const InputDecoration(labelText: 'Role'),
+                  items: const [
+                    DropdownMenuItem(value: 'kader', child: Text('Kader')),
+                    DropdownMenuItem(value: 'bidan', child: Text('Bidan')),
+                  ],
+                  onChanged: (value) => setState(() => role = value ?? 'kader'),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: status,
+                  decoration: const InputDecoration(labelText: 'Status'),
+                  items: const [
+                    DropdownMenuItem(value: 'aktif', child: Text('Aktif')),
+                    DropdownMenuItem(
+                      value: 'nonaktif',
+                      child: Text('Nonaktif'),
+                    ),
+                  ],
+                  onChanged: (value) =>
+                      setState(() => status = value ?? 'aktif'),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: const Key('saveAdminAccountButton'),
+                  onPressed: () async {
+                    await ref
+                        .read(adminDashboardControllerProvider.notifier)
+                        .saveAccount(
+                          id: account?.id,
+                          name: name.text.trim(),
+                          nikNip: nik.text.trim(),
+                          password: password.text.trim(),
+                          role: role,
+                          posyanduId: account?.posyanduId,
+                          status: status,
+                        );
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                  child: const Text('Simpan Akun'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -496,56 +643,59 @@ class AdminDashboardPage extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-        ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              posyandu == null ? 'Tambah Posyandu' : 'Edit Posyandu',
-              style: Theme.of(sheetContext).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Nama Posyandu'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: address,
-              decoration: const InputDecoration(labelText: 'Alamat'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: village,
-              decoration: const InputDecoration(labelText: 'Desa'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: district,
-              decoration: const InputDecoration(labelText: 'Kecamatan'),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () async {
-                await ref
-                    .read(adminDashboardControllerProvider.notifier)
-                    .savePosyandu(
-                      id: posyandu?.id,
-                      name: name.text.trim(),
-                      address: address.text.trim(),
-                      village: village.text.trim(),
-                      district: district.text.trim(),
-                    );
-                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-              },
-              child: const Text('Simpan Posyandu'),
-            ),
-          ],
+      builder: (sheetContext) => SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Text(
+                posyandu == null ? 'Tambah Posyandu' : 'Edit Posyandu',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Nama Posyandu'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: address,
+                decoration: const InputDecoration(labelText: 'Alamat'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: village,
+                decoration: const InputDecoration(labelText: 'Desa'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: district,
+                decoration: const InputDecoration(labelText: 'Kecamatan'),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () async {
+                  await ref
+                      .read(adminDashboardControllerProvider.notifier)
+                      .savePosyandu(
+                        id: posyandu?.id,
+                        name: name.text.trim(),
+                        address: address.text.trim(),
+                        village: village.text.trim(),
+                        district: district.text.trim(),
+                      );
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                },
+                child: const Text('Simpan Posyandu'),
+              ),
+            ],
+          ),
         ),
       ),
     ).whenComplete(() {
@@ -554,6 +704,145 @@ class AdminDashboardPage extends ConsumerWidget {
         address.dispose();
         village.dispose();
         district.dispose();
+      });
+    });
+  }
+
+  Future<void> _openScheduleForm(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state, [
+    AdminSchedule? schedule,
+  ]) {
+    final now = DateTime.now();
+    final defaultDate =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final date = TextEditingController(text: schedule?.date ?? defaultDate);
+    final start = TextEditingController(text: schedule?.startTime ?? '08:00');
+    final end = TextEditingController(text: schedule?.endTime ?? '11:00');
+    final location = TextEditingController(
+      text: schedule?.location ?? state.posyandu.first.address ?? '',
+    );
+    final note = TextEditingController(text: schedule?.note ?? '');
+    var posyanduId = schedule?.posyanduId ?? state.posyandu.first.id;
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setState) => SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Text(
+                  schedule == null ? 'Buat Jadwal' : 'Edit Jadwal',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Jadwal ini bisa dibuka menjadi sesi aktif saat Posyandu berlangsung.',
+                  style: TextStyle(color: LedgerColors.inkSoft, height: 1.35),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<int>(
+                  initialValue: posyanduId,
+                  decoration: const InputDecoration(labelText: 'Posyandu'),
+                  items: state.posyandu
+                      .map(
+                        (row) => DropdownMenuItem(
+                          value: row.id,
+                          child: Text(row.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => posyanduId = value ?? posyanduId),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const Key('adminScheduleDateField'),
+                  controller: date,
+                  decoration: const InputDecoration(
+                    labelText: 'Tanggal',
+                    hintText: 'YYYY-MM-DD',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: start,
+                        decoration: const InputDecoration(
+                          labelText: 'Mulai',
+                          hintText: '08:00',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: end,
+                        decoration: const InputDecoration(
+                          labelText: 'Selesai',
+                          hintText: '11:00',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: location,
+                  decoration: const InputDecoration(labelText: 'Lokasi'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: note,
+                  decoration: const InputDecoration(
+                    labelText: 'Catatan',
+                    hintText: 'Misal: penimbangan rutin',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: const Key('saveAdminScheduleButton'),
+                  onPressed: () async {
+                    await ref
+                        .read(adminDashboardControllerProvider.notifier)
+                        .saveSchedule(
+                          id: schedule?.id,
+                          posyanduId: posyanduId,
+                          date: date.text.trim(),
+                          startTime: start.text.trim(),
+                          endTime: end.text.trim(),
+                          location: location.text.trim(),
+                          note: note.text.trim(),
+                        );
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                  child: const Text('Simpan Jadwal'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        date.dispose();
+        start.dispose();
+        end.dispose();
+        location.dispose();
+        note.dispose();
       });
     });
   }
@@ -655,6 +944,207 @@ class _AdminAccountCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AccountActionSummary extends StatelessWidget {
+  const _AccountActionSummary({required this.account});
+
+  final AdminAccount account;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: LedgerColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            account.role.toUpperCase(),
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              color: LedgerColors.inkSoft,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text('NIP/NIK ${account.nikNip}'),
+          const SizedBox(height: 2),
+          Text(
+            account.posyanduId == null
+                ? 'Akses semua Posyandu'
+                : 'Terhubung ke Posyandu ${account.posyanduId}',
+            style: const TextStyle(color: LedgerColors.inkSoft),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminPosyanduCard extends StatelessWidget {
+  const _AdminPosyanduCard({
+    required this.posyandu,
+    required this.bidanCount,
+    required this.kaderCount,
+    required this.scheduleCount,
+    required this.isActive,
+    required this.onOpenAccounts,
+    required this.onOpenSessions,
+    required this.onEdit,
+  });
+
+  final AdminPosyandu posyandu;
+  final int bidanCount;
+  final int kaderCount;
+  final int scheduleCount;
+  final bool isActive;
+  final VoidCallback onOpenAccounts;
+  final VoidCallback onOpenSessions;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final location = [
+      if (posyandu.village?.isNotEmpty ?? false) posyandu.village,
+      if (posyandu.district?.isNotEmpty ?? false) posyandu.district,
+    ].whereType<String>().join(' | ');
+    return LedgerPanel(
+      title: posyandu.name,
+      subtitle: location.isEmpty ? 'Wilayah kerja Posyandu' : location,
+      accent: isActive ? LedgerColors.primary : LedgerColors.bidanBlue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              StatusBadge(
+                label: '$bidanCount bidan',
+                color: LedgerColors.bidanBlue,
+                softColor: LedgerColors.healthAquaSoft,
+              ),
+              StatusBadge(
+                label: '$kaderCount kader',
+                color: LedgerColors.primary,
+                softColor: LedgerColors.primarySoft,
+              ),
+              StatusBadge(
+                label: '$scheduleCount jadwal',
+                color: LedgerColors.attention,
+                softColor: LedgerColors.attentionSoft,
+              ),
+              if (isActive)
+                const StatusBadge(
+                  label: 'sesi aktif',
+                  color: LedgerColors.primary,
+                  softColor: LedgerColors.primarySoft,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            posyandu.address?.isNotEmpty ?? false
+                ? posyandu.address!
+                : 'Alamat belum diisi.',
+            style: const TextStyle(color: LedgerColors.inkSoft),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onOpenAccounts,
+                icon: const Icon(Icons.people_outline),
+                label: const Text('Akun terkait'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onOpenSessions,
+                icon: const Icon(Icons.event_available_outlined),
+                label: const Text('Jadwal/Sesi'),
+              ),
+              FilledButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminScheduleCard extends StatelessWidget {
+  const _AdminScheduleCard({
+    required this.schedule,
+    required this.posyanduName,
+    required this.isActive,
+    required this.onStart,
+    required this.onEdit,
+  });
+
+  final AdminSchedule schedule;
+  final String posyanduName;
+  final bool isActive;
+  final VoidCallback? onStart;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final time = [
+      if (schedule.startTime?.isNotEmpty ?? false) schedule.startTime,
+      if (schedule.endTime?.isNotEmpty ?? false) schedule.endTime,
+    ].whereType<String>().join(' - ');
+    return LedgerPanel(
+      title: '$posyanduName | ${schedule.date}',
+      subtitle: time.isEmpty ? 'Jam belum diatur' : time,
+      accent: isActive ? LedgerColors.primary : LedgerColors.attention,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            schedule.location?.isNotEmpty ?? false
+                ? schedule.location!
+                : 'Lokasi belum diisi.',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          if (schedule.note?.isNotEmpty ?? false) ...[
+            const SizedBox(height: 4),
+            Text(
+              schedule.note!,
+              style: const TextStyle(color: LedgerColors.inkSoft),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                key: const Key('startAdminSessionButton'),
+                onPressed: isActive ? null : onStart,
+                icon: const Icon(Icons.play_arrow_outlined),
+                label: Text(isActive ? 'Sedang Aktif' : 'Mulai Sesi'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_calendar_outlined),
+                label: const Text('Edit Jadwal'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

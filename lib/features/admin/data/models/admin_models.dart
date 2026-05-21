@@ -1,6 +1,7 @@
 import '../../../kader/data/models/kader_models.dart';
 import '../../domain/entities/admin_account.dart';
 import '../../domain/entities/admin_posyandu.dart';
+import '../../domain/entities/admin_schedule.dart';
 
 class AdminAccountModel extends AdminAccount {
   const AdminAccountModel({
@@ -46,9 +47,61 @@ class AdminPosyanduModel extends AdminPosyandu {
   }
 }
 
+class AdminScheduleModel extends AdminSchedule {
+  const AdminScheduleModel({
+    required super.id,
+    required super.posyanduId,
+    required super.date,
+    super.startTime,
+    super.endTime,
+    super.location,
+    super.note,
+  });
+
+  factory AdminScheduleModel.fromJson(Map<String, dynamic> json) {
+    return AdminScheduleModel(
+      id: _asInt(json['id']),
+      posyanduId: _asInt(json['posyandu_id']),
+      date: json['tanggal']?.toString() ?? '-',
+      startTime: _shortTime(json['jam_mulai']),
+      endTime: _shortTime(json['jam_selesai']),
+      location: json['lokasi']?.toString(),
+      note: json['keterangan']?.toString(),
+    );
+  }
+}
+
+class AdminSessionModel extends AdminSession {
+  const AdminSessionModel({
+    required super.id,
+    required super.posyanduId,
+    required super.date,
+    required super.status,
+    super.scheduleId,
+  });
+
+  factory AdminSessionModel.fromJson(Map<String, dynamic> json) {
+    return AdminSessionModel(
+      id: _asInt(json['id']),
+      posyanduId: _asInt(json['posyandu_id']),
+      date: json['tanggal']?.toString() ?? '-',
+      status: json['status']?.toString() ?? '-',
+      scheduleId: json['jadwal_posyandu_id'] == null
+          ? null
+          : _asInt(json['jadwal_posyandu_id']),
+    );
+  }
+}
+
 int _asInt(Object? value) {
   if (value is int) return value;
   return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String? _shortTime(Object? value) {
+  final text = value?.toString();
+  if (text == null || text.isEmpty) return null;
+  return text.length >= 5 ? text.substring(0, 5) : text;
 }
 
 List<Map<String, dynamic>> adminRows(Map<String, dynamic> json) =>

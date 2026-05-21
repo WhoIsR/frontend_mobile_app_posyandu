@@ -88,6 +88,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
           AdminDashboardPage(onNavigate: _navigateAdmin),
           AdminDashboardPage(focus: 'akun', onNavigate: _navigateAdmin),
           AdminDashboardPage(focus: 'posyandu', onNavigate: _navigateAdmin),
+          AdminDashboardPage(focus: 'sesi', onNavigate: _navigateAdmin),
           AdminDashboardPage(focus: 'laporan', onNavigate: _navigateAdmin),
         ],
       ),
@@ -142,7 +143,8 @@ class _RoleShellState extends ConsumerState<RoleShell> {
     final next = switch (focus) {
       'akun' => 1,
       'posyandu' => 2,
-      'laporan' => 3,
+      'sesi' => 3,
+      'laporan' => 4,
       _ => 0,
     };
     setState(() => _index = next);
@@ -219,9 +221,19 @@ const _adminDestinations = [
     label: 'Posyandu',
   ),
   NavigationDestination(
+    icon: Icon(Icons.event_available_outlined),
+    label: 'Sesi',
+  ),
+  NavigationDestination(
     icon: Icon(Icons.description_outlined),
     label: 'Laporan',
   ),
 ];
 
-const _adminTitles = ['Beranda Admin', 'Akun', 'Posyandu', 'Laporan'];
+const _adminTitles = [
+  'Beranda Admin',
+  'Akun',
+  'Posyandu',
+  'Jadwal & Sesi',
+  'Laporan',
+];
