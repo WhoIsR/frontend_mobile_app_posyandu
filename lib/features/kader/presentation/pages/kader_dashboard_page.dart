@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/ledger_theme.dart';
 import '../../../../shared/risk/risk_copy.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
+import '../../domain/entities/app_notification.dart';
 import '../../domain/entities/balita.dart';
 import '../../domain/entities/create_balita_request.dart';
 import '../../domain/entities/kader_dashboard_data.dart';
@@ -69,7 +70,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       ),
       'balita' => _childrenSection(data, state),
       'skrining' => _screeningSection(data),
-      'notifikasi' => _notificationSection(data),
+      'notifikasi' => _notificationSection(context, data),
       _ => _homeSection(context, data),
     };
   }
@@ -246,7 +247,10 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     ];
   }
 
-  List<Widget> _notificationSection(KaderDashboardData? data) {
+  List<Widget> _notificationSection(
+    BuildContext context,
+    KaderDashboardData? data,
+  ) {
     return [
       const SectionTitle('Notifikasi'),
       if (data?.notifications.isEmpty ?? true)
@@ -258,7 +262,12 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
               (row) => LedgerListRow(
                 title: row.title,
                 subtitle: row.message,
-                trailing: const Icon(Icons.notifications_none),
+                trailing: Icon(
+                  row.isRead
+                      ? Icons.mark_email_read_outlined
+                      : Icons.notifications_none,
+                ),
+                onTap: () => _openNotification(context, row),
               ),
             ),
     ];
@@ -305,6 +314,29 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     await ref
         .read(kaderDashboardControllerProvider.notifier)
         .saveMeasurement(weight: weight, height: height);
+  }
+
+  Future<void> _openNotification(
+    BuildContext context,
+    AppNotification notification,
+  ) async {
+    await ref
+        .read(kaderDashboardControllerProvider.notifier)
+        .openNotification(notification.id);
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Detail notifikasi'),
+        content: Text(notification.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

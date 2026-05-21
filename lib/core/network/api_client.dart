@@ -38,12 +38,7 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool authenticated = true,
   }) {
-    return _requestJson(
-      'POST',
-      path,
-      body: body,
-      authenticated: authenticated,
-    );
+    return _requestJson('POST', path, body: body, authenticated: authenticated);
   }
 
   Future<Map<String, dynamic>> putJson(
@@ -53,10 +48,7 @@ class ApiClient {
     return _requestJson('PUT', path, body: body);
   }
 
-  Future<Uint8List> download(
-    String path, {
-    Map<String, String>? query,
-  }) async {
+  Future<Uint8List> download(String path, {Map<String, String>? query}) async {
     final response = await _client.get(_uri(path, query), headers: _headers());
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(

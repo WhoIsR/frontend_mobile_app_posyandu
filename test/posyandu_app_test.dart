@@ -10,6 +10,9 @@ import 'package:mobile/core/network/api_exception.dart';
 import 'package:mobile/features/auth/domain/entities/app_user.dart';
 import 'package:mobile/features/auth/domain/entities/auth_session.dart';
 import 'package:mobile/features/auth/domain/repositories/auth_repository.dart';
+import 'package:mobile/features/admin/domain/entities/admin_account.dart';
+import 'package:mobile/features/admin/domain/entities/admin_posyandu.dart';
+import 'package:mobile/features/admin/domain/repositories/admin_repository.dart';
 import 'package:mobile/features/bidan/domain/entities/bidan_dashboard_data.dart';
 import 'package:mobile/features/bidan/domain/entities/pmt_stock.dart';
 import 'package:mobile/features/bidan/domain/entities/referral.dart';
@@ -50,6 +53,21 @@ void main() {
     expect(find.text('Beranda Bidan'), findsOneWidget);
     expect(find.text('Ringkasan Bidan'), findsOneWidget);
     expect(find.text('PMT'), findsWidgets);
+  });
+
+  testWidgets('login sukses Admin mengarah ke shell Admin', (tester) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin)),
+    );
+    await tester.pumpAndSettle();
+
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    expect(find.text('Beranda Admin'), findsOneWidget);
+    expect(find.text('Akun'), findsWidgets);
+    expect(find.text('Posyandu'), findsWidgets);
+    expect(find.text('Input pengukuran'), findsNothing);
+    expect(find.text('Validasi Medis'), findsNothing);
   });
 
   testWidgets('login gagal menampilkan pesan error', (tester) async {
@@ -173,6 +191,26 @@ void main() {
     expect(find.text('Validasi selesai'), findsOneWidget);
     expect(find.text('Hasil Skrining Hari Ini'), findsNothing);
     expect(find.text('Cari balita'), findsNothing);
+  });
+
+  testWidgets('Kader notifikasi bisa dibuka dan ditandai dibaca', (
+    tester,
+  ) async {
+    final kader = FakeKaderRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+    await tester.tap(find.text('Notifikasi').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Validasi selesai'));
+    await tester.pumpAndSettle();
+
+    expect(kader.readNotificationId, 91);
+    expect(find.text('Detail notifikasi'), findsOneWidget);
+    expect(find.text('Rujukan sudah ditinjau bidan.'), findsWidgets);
   });
 
   testWidgets('Kader bisa mendaftarkan balita baru dari tab Balita', (
@@ -318,18 +356,32 @@ void main() {
     await tester.tap(find.text('Laporan').last);
     await tester.pumpAndSettle();
 
-    for (final type in ['prediksi', 'kehadiran', 'distribusi-pmt']) {
-      await tester.ensureVisible(find.byKey(Key('downloadReport-$type')));
-      await tester.tap(find.byKey(Key('downloadReport-$type')));
-      await tester.pumpAndSettle();
-    }
+    await tester.ensureVisible(
+      find.byKey(const Key('downloadReport-prediksi')),
+    );
+    await tester.tap(find.byKey(const Key('downloadReport-prediksi')));
+    await tester.pumpAndSettle();
 
-    expect(bidan.downloadedReports, [
-      'prediksi',
-      'kehadiran',
-      'distribusi-pmt',
-    ]);
-    expect(find.textContaining('PDF berhasil diminta'), findsOneWidget);
+    expect(bidan.downloadedReports, ['prediksi']);
+    expect(find.text('Preview PDF siap'), findsOneWidget);
+    expect(find.text('Bagikan / Simpan'), findsOneWidget);
+  });
+
+  testWidgets('Admin bisa melihat akun dan Posyandu', (tester) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin)),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    await tester.tap(find.text('Akun').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Bidan Sari'), findsOneWidget);
+    expect(find.text('Kader Rini'), findsOneWidget);
+
+    await tester.tap(find.text('Posyandu').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Posyandu Melati 03'), findsOneWidget);
   });
 
   testWidgets('Kader tidak melihat fitur khusus Bidan', (tester) async {
@@ -360,6 +412,7 @@ Widget _app({
   FakeAuthRepository? auth,
   FakeKaderRepository? kader,
   FakeBidanRepository? bidan,
+  FakeAdminRepository? admin,
 }) {
   return ProviderScope(
     overrides: [
@@ -368,6 +421,7 @@ Widget _app({
       ),
       kaderRepositoryProvider.overrideWithValue(kader ?? FakeKaderRepository()),
       bidanRepositoryProvider.overrideWithValue(bidan ?? FakeBidanRepository()),
+      adminRepositoryProvider.overrideWithValue(admin ?? FakeAdminRepository()),
     ],
     child: const PosyanduApp(),
   );
@@ -420,11 +474,13 @@ class FakeAuthRepository implements AuthRepository {
 
   AppUser _user(String nikNip) {
     return AppUser(
-      id: role == UserRole.kader ? 1 : 2,
-      nama: role == UserRole.kader ? 'Bu Rini' : 'Bidan Sari',
+      id: role == UserRole.kader ? 1 : (role == UserRole.bidan ? 2 : 3),
+      nama: role == UserRole.kader
+          ? 'Bu Rini'
+          : (role == UserRole.bidan ? 'Bidan Sari' : 'Admin Posyandu'),
       nikNip: nikNip,
       role: role,
-      posyanduId: 1,
+      posyanduId: role == UserRole.admin ? null : 1,
     );
   }
 }
@@ -540,10 +596,21 @@ class FakeKaderRepository implements KaderRepository {
   Future<List<AppNotification>> notifications() async {
     return const [
       AppNotification(
+        id: 91,
         title: 'Validasi selesai',
         message: 'Rujukan sudah ditinjau bidan.',
+        type: 'validasi_selesai',
+        data: {'rujukan_id': 31},
+        isRead: false,
       ),
     ];
+  }
+
+  int? readNotificationId;
+
+  @override
+  Future<void> markNotificationRead(int id) async {
+    readNotificationId = id;
   }
 }
 
@@ -620,8 +687,52 @@ class FakeBidanRepository implements BidanRepository {
   Future<List<AppNotification>> notifications() async {
     return const [
       AppNotification(
+        id: 92,
         title: 'Rujukan masuk',
         message: 'Ada hasil skrining yang perlu ditinjau.',
+        type: 'rujukan_masuk',
+        data: {'rujukan_id': 31},
+        isRead: false,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> markNotificationRead(int id) async {}
+}
+
+class FakeAdminRepository implements AdminRepository {
+  @override
+  Future<List<AdminAccount>> accounts() async {
+    return const [
+      AdminAccount(
+        id: 1,
+        name: 'Bidan Sari',
+        nikNip: '1976010101010001',
+        role: 'bidan',
+        status: 'aktif',
+        posyanduId: 1,
+      ),
+      AdminAccount(
+        id: 2,
+        name: 'Kader Rini',
+        nikNip: '3276010101010001',
+        role: 'kader',
+        status: 'aktif',
+        posyanduId: 1,
+      ),
+    ];
+  }
+
+  @override
+  Future<List<AdminPosyandu>> posyandu() async {
+    return const [
+      AdminPosyandu(
+        id: 1,
+        name: 'Posyandu Melati 03',
+        address: 'Balai Desa Melati',
+        village: 'Melati',
+        district: 'Sukamaju',
       ),
     ];
   }

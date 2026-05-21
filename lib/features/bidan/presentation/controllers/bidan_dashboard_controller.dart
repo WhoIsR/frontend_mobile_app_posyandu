@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../kader/domain/entities/app_notification.dart';
 import '../../domain/entities/bidan_dashboard_data.dart';
 
 class BidanDashboardState {
@@ -12,6 +15,8 @@ class BidanDashboardState {
     this.isDistributingPmt = false,
     this.message,
     this.isError = false,
+    this.reportBytes,
+    this.reportType,
   });
 
   final BidanDashboardData? data;
@@ -20,6 +25,8 @@ class BidanDashboardState {
   final bool isDistributingPmt;
   final String? message;
   final bool isError;
+  final Uint8List? reportBytes;
+  final String? reportType;
 
   BidanDashboardState copyWith({
     BidanDashboardData? data,
@@ -29,6 +36,9 @@ class BidanDashboardState {
     String? message,
     bool clearMessage = false,
     bool? isError,
+    Uint8List? reportBytes,
+    String? reportType,
+    bool clearReport = false,
   }) {
     return BidanDashboardState(
       data: data ?? this.data,
@@ -37,6 +47,8 @@ class BidanDashboardState {
       isDistributingPmt: isDistributingPmt ?? this.isDistributingPmt,
       message: clearMessage ? null : message ?? this.message,
       isError: isError ?? this.isError,
+      reportBytes: clearReport ? null : reportBytes ?? this.reportBytes,
+      reportType: clearReport ? null : reportType ?? this.reportType,
     );
   }
 }
@@ -145,12 +157,42 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     try {
       final bytes = await ref.read(downloadReportProvider)(type);
       state = state.copyWith(
-        message: 'PDF berhasil diminta (${bytes.lengthInBytes} byte).',
+        message: 'Preview PDF siap',
         isError: false,
+        reportBytes: bytes,
+        reportType: type,
       );
     } catch (error) {
       state = state.copyWith(message: _errorText(error), isError: true);
     }
+  }
+
+  Future<void> openNotification(int id) async {
+    await ref.read(bidanRepositoryProvider).markNotificationRead(id);
+    final current = state.data;
+    if (current == null) return;
+    state = state.copyWith(
+      data: BidanDashboardData(
+        referrals: current.referrals,
+        pmtStock: current.pmtStock,
+        notifications: current.notifications
+            .map(
+              (row) => row.id == id
+                  ? AppNotification(
+                      id: row.id,
+                      title: row.title,
+                      message: row.message,
+                      type: row.type,
+                      data: row.data,
+                      isRead: true,
+                    )
+                  : row,
+            )
+            .toList(),
+      ),
+      message: 'Notifikasi dibuka.',
+      isError: false,
+    );
   }
 
   String _errorText(Object error) {

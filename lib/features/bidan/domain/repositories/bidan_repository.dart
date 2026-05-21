@@ -23,4 +23,5 @@ abstract class BidanRepository {
   Future<List<PmtStock>> pmtStock();
   Future<Uint8List> downloadReport(String type);
   Future<List<AppNotification>> notifications();
+  Future<void> markNotificationRead(int id);
 }

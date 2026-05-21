@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/providers.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../domain/entities/app_notification.dart';
 import '../../domain/entities/balita.dart';
 import '../../domain/entities/create_balita_request.dart';
 import '../../domain/entities/kader_dashboard_data.dart';
@@ -202,6 +203,35 @@ class KaderDashboardController extends Notifier<KaderDashboardState> {
     } catch (error) {
       state = state.copyWith(message: _errorText(error), isError: true);
     }
+  }
+
+  Future<void> openNotification(int id) async {
+    await ref.read(kaderRepositoryProvider).markNotificationRead(id);
+    final current = state.data;
+    if (current == null) return;
+    state = state.copyWith(
+      data: KaderDashboardData(
+        session: current.session,
+        children: current.children,
+        screening: current.screening,
+        notifications: current.notifications
+            .map(
+              (row) => row.id == id
+                  ? AppNotification(
+                      id: row.id,
+                      title: row.title,
+                      message: row.message,
+                      type: row.type,
+                      data: row.data,
+                      isRead: true,
+                    )
+                  : row,
+            )
+            .toList(),
+      ),
+      message: 'Notifikasi dibuka.',
+      isError: false,
+    );
   }
 
   String _errorText(Object error) {

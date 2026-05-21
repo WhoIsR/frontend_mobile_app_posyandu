@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../app/ledger_theme.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
+import '../../../kader/domain/entities/app_notification.dart';
 import '../../domain/entities/bidan_dashboard_data.dart';
 import '../../domain/entities/pmt_stock.dart';
 import '../../domain/entities/referral.dart';
@@ -55,7 +57,7 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       ],
       'pmt' => _pmtSection(state, data),
       'laporan' => _reportSection(state),
-      'notifikasi' => _notificationSection(data),
+      'notifikasi' => _notificationSection(context, data),
       _ => _homeSection(context, data),
     };
   }
@@ -300,6 +302,23 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
             .read(bidanDashboardControllerProvider.notifier)
             .downloadReport(type),
       ),
+      if (state.reportBytes != null) ...[
+        const SizedBox(height: 12),
+        LedgerPanel(
+          title: 'Preview PDF siap',
+          subtitle:
+              'Laporan ${state.reportType ?? ''} sudah diterima dari server.',
+          accent: LedgerColors.bidanBlue,
+          child: FilledButton.icon(
+            onPressed: () => Printing.sharePdf(
+              bytes: state.reportBytes!,
+              filename: 'laporan-${state.reportType ?? 'posyandu'}.pdf',
+            ),
+            icon: const Icon(Icons.ios_share_outlined),
+            label: const Text('Bagikan / Simpan'),
+          ),
+        ),
+      ],
       if (state.message != null &&
           state.message!.toLowerCase().contains('pdf')) ...[
         const SizedBox(height: 12),
@@ -308,7 +327,10 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     ];
   }
 
-  List<Widget> _notificationSection(BidanDashboardData? data) {
+  List<Widget> _notificationSection(
+    BuildContext context,
+    BidanDashboardData? data,
+  ) {
     return [
       const _PageIntro(
         title: 'Notifikasi',
@@ -324,7 +346,12 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
               (row) => LedgerListRow(
                 title: row.title,
                 subtitle: row.message,
-                trailing: const Icon(Icons.notifications_none),
+                trailing: Icon(
+                  row.isRead
+                      ? Icons.mark_email_read_outlined
+                      : Icons.notifications_none,
+                ),
+                onTap: () => _openNotification(context, row),
               ),
             ),
     ];
@@ -334,6 +361,29 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     return ref
         .read(bidanDashboardControllerProvider.notifier)
         .validateFirstReferral(decision: _decision, note: _noteController.text);
+  }
+
+  Future<void> _openNotification(
+    BuildContext context,
+    AppNotification notification,
+  ) async {
+    await ref
+        .read(bidanDashboardControllerProvider.notifier)
+        .openNotification(notification.id);
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Detail notifikasi'),
+        content: Text(notification.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

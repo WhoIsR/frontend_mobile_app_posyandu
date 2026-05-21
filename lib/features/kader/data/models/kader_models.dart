@@ -80,12 +80,24 @@ class ScreeningItemModel extends ScreeningItem {
 }
 
 class AppNotificationModel extends AppNotification {
-  const AppNotificationModel({required super.title, required super.message});
+  const AppNotificationModel({
+    required super.id,
+    required super.title,
+    required super.message,
+    required super.type,
+    super.data,
+    super.isRead,
+  });
 
   factory AppNotificationModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'];
     return AppNotificationModel(
+      id: _asInt(json['id']),
       title: json['judul']?.toString() ?? 'Notifikasi',
       message: json['pesan']?.toString() ?? '-',
+      type: json['tipe']?.toString() ?? 'system',
+      data: data is Map ? data.cast<String, Object?>() : const {},
+      isRead: json['is_read'] == true || json['is_read']?.toString() == '1',
     );
   }
 }

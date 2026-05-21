@@ -14,10 +14,13 @@ class BidanRemoteDataSource {
     String search = '',
     String? status,
   }) async {
-    final json = await _apiClient.getJson('/rujukan', query: {
-      if (search.trim().isNotEmpty) 'search': search.trim(),
-      if (status != null && status.isNotEmpty) 'status': status,
-    });
+    final json = await _apiClient.getJson(
+      '/rujukan',
+      query: {
+        if (search.trim().isNotEmpty) 'search': search.trim(),
+        if (status != null && status.isNotEmpty) 'status': status,
+      },
+    );
     return paginatedRows(json).map(ReferralModel.fromJson).toList();
   }
 
@@ -63,5 +66,9 @@ class BidanRemoteDataSource {
 
   Future<Uint8List> downloadReport(String type) {
     return _apiClient.download('/laporan/$type');
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    await _apiClient.postJson('/notifikasi/$id/read');
   }
 }

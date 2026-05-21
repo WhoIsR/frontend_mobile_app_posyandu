@@ -14,8 +14,14 @@ class AppUserModel extends AppUser {
       id: _asInt(json['id']),
       nama: json['nama']?.toString() ?? '-',
       nikNip: json['nik_nip']?.toString() ?? '-',
-      role: json['role'] == 'bidan' ? UserRole.bidan : UserRole.kader,
-      posyanduId: json['posyandu_id'] == null ? null : _asInt(json['posyandu_id']),
+      role: switch (json['role']?.toString()) {
+        'admin' => UserRole.admin,
+        'bidan' => UserRole.bidan,
+        _ => UserRole.kader,
+      },
+      posyanduId: json['posyandu_id'] == null
+          ? null
+          : _asInt(json['posyandu_id']),
     );
   }
 }

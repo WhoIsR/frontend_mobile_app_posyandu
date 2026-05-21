@@ -20,4 +20,5 @@ abstract class KaderRepository {
   Future<MeasurementResult> retryPrediction(int measurementId);
   Future<List<ScreeningItem>> screening(int sessionId);
   Future<List<AppNotification>> notifications();
+  Future<void> markNotificationRead(int id);
 }

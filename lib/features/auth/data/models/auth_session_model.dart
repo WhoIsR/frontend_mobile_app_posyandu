@@ -7,7 +7,9 @@ class AuthSessionModel extends AuthSession {
   factory AuthSessionModel.fromJson(Map<String, dynamic> json) {
     return AuthSessionModel(
       token: json['token']?.toString() ?? '',
-      user: AppUserModel.fromJson((json['user'] as Map).cast<String, dynamic>()),
+      user: AppUserModel.fromJson(
+        (json['user'] as Map).cast<String, dynamic>(),
+      ),
     );
   }
 }

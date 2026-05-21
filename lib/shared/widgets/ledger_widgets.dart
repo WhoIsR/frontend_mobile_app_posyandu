@@ -72,34 +72,46 @@ class LedgerListRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.trailing,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final Widget trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: LedgerColors.inkSoft)),
-                ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(color: LedgerColors.inkSoft),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(flex: 0, child: trailing),
-          ],
+              const SizedBox(width: 8),
+              Flexible(flex: 0, child: trailing),
+            ],
+          ),
         ),
       ),
     );
@@ -168,9 +180,9 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

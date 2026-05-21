@@ -50,6 +50,9 @@ class AuthController extends Notifier<AuthState> {
   Future<void> restore() async {
     final user = await ref.read(restoreSessionUseCaseProvider)();
     state = AuthState(isBooting: false, isSubmitting: false, user: user);
+    if (user != null) {
+      await ref.read(fcmRegistrationServiceProvider).registerTokenIfAvailable();
+    }
   }
 
   Future<void> login(String nikNip, String password) async {
@@ -61,6 +64,7 @@ class AuthController extends Notifier<AuthState> {
         isSubmitting: false,
         user: session.user,
       );
+      await ref.read(fcmRegistrationServiceProvider).registerTokenIfAvailable();
     } catch (error) {
       state = state.copyWith(
         isSubmitting: false,
@@ -81,5 +85,6 @@ class AuthController extends Notifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);

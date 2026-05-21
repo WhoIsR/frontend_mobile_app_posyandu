@@ -78,4 +78,8 @@ class KaderRemoteDataSource {
     final json = await _apiClient.getJson('/notifikasi');
     return paginatedRows(json).map(AppNotificationModel.fromJson).toList();
   }
+
+  Future<void> markNotificationRead(int id) async {
+    await _apiClient.postJson('/notifikasi/$id/read');
+  }
 }

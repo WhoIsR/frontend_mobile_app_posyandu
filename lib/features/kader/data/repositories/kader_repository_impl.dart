@@ -71,4 +71,9 @@ class KaderRepositoryImpl implements KaderRepository {
   Future<List<AppNotification>> notifications() {
     return _remoteDataSource.notifications();
   }
+
+  @override
+  Future<void> markNotificationRead(int id) {
+    return _remoteDataSource.markNotificationRead(id);
+  }
 }

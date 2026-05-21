@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/auth/domain/entities/app_user.dart';
 import '../features/auth/presentation/controllers/auth_controller.dart';
 import '../features/auth/presentation/pages/login_page.dart';
+import '../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../features/bidan/presentation/pages/bidan_dashboard_page.dart';
 import '../features/kader/presentation/pages/kader_dashboard_page.dart';
 import '../shared/widgets/ledger_widgets.dart';
@@ -51,23 +52,9 @@ class _RoleShellState extends ConsumerState<RoleShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isKader = widget.user.role == UserRole.kader;
-    final title = isKader ? _kaderTitles[_index] : _bidanTitles[_index];
-    final pages = isKader
-        ? const [
-            KaderDashboardPage(),
-            KaderDashboardPage(focus: 'sesi'),
-            KaderDashboardPage(focus: 'balita'),
-            KaderDashboardPage(focus: 'skrining'),
-            KaderDashboardPage(focus: 'notifikasi'),
-          ]
-        : const [
-            BidanDashboardPage(),
-            BidanDashboardPage(focus: 'rujukan'),
-            BidanDashboardPage(focus: 'pmt'),
-            BidanDashboardPage(focus: 'laporan'),
-            BidanDashboardPage(focus: 'notifikasi'),
-          ];
+    final shell = _shellSpec(widget.user.role);
+    final title = shell.titles[_index];
+    final pages = shell.pages;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
@@ -86,11 +73,59 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: isKader ? _kaderDestinations : _bidanDestinations,
+        destinations: shell.destinations,
       ),
       body: SafeArea(child: pages[_index]),
     );
   }
+
+  _RoleShellSpec _shellSpec(UserRole role) {
+    return switch (role) {
+      UserRole.admin => const _RoleShellSpec(
+        titles: _adminTitles,
+        destinations: _adminDestinations,
+        pages: [
+          AdminDashboardPage(),
+          AdminDashboardPage(focus: 'akun'),
+          AdminDashboardPage(focus: 'posyandu'),
+        ],
+      ),
+      UserRole.bidan => const _RoleShellSpec(
+        titles: _bidanTitles,
+        destinations: _bidanDestinations,
+        pages: [
+          BidanDashboardPage(),
+          BidanDashboardPage(focus: 'rujukan'),
+          BidanDashboardPage(focus: 'pmt'),
+          BidanDashboardPage(focus: 'laporan'),
+          BidanDashboardPage(focus: 'notifikasi'),
+        ],
+      ),
+      UserRole.kader => const _RoleShellSpec(
+        titles: _kaderTitles,
+        destinations: _kaderDestinations,
+        pages: [
+          KaderDashboardPage(),
+          KaderDashboardPage(focus: 'sesi'),
+          KaderDashboardPage(focus: 'balita'),
+          KaderDashboardPage(focus: 'skrining'),
+          KaderDashboardPage(focus: 'notifikasi'),
+        ],
+      ),
+    };
+  }
+}
+
+class _RoleShellSpec {
+  const _RoleShellSpec({
+    required this.titles,
+    required this.destinations,
+    required this.pages,
+  });
+
+  final List<String> titles;
+  final List<NavigationDestination> destinations;
+  final List<Widget> pages;
 }
 
 const _kaderDestinations = [
@@ -142,3 +177,14 @@ const _bidanTitles = [
   'Laporan',
   'Notifikasi Bidan',
 ];
+
+const _adminDestinations = [
+  NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Beranda'),
+  NavigationDestination(icon: Icon(Icons.people_outline), label: 'Akun'),
+  NavigationDestination(
+    icon: Icon(Icons.home_work_outlined),
+    label: 'Posyandu',
+  ),
+];
+
+const _adminTitles = ['Beranda Admin', 'Akun', 'Posyandu'];

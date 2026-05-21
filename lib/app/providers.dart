@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
+import '../core/notifications/fcm_registration_service.dart';
 import '../core/token_store.dart';
 import '../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
@@ -8,6 +9,9 @@ import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/auth/domain/usecases/login.dart';
 import '../features/auth/domain/usecases/logout.dart';
 import '../features/auth/domain/usecases/restore_session.dart';
+import '../features/admin/data/datasources/admin_remote_data_source.dart';
+import '../features/admin/data/repositories/admin_repository_impl.dart';
+import '../features/admin/domain/repositories/admin_repository.dart';
 import '../features/bidan/data/datasources/bidan_remote_data_source.dart';
 import '../features/bidan/data/repositories/bidan_repository_impl.dart';
 import '../features/bidan/domain/repositories/bidan_repository.dart';
@@ -28,6 +32,10 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
 final tokenStoreProvider = Provider<TokenStore>(
   (ref) => SharedPreferencesTokenStore(),
+);
+
+final fcmRegistrationServiceProvider = Provider<FcmRegistrationService>(
+  (ref) => FcmRegistrationService(ref.watch(apiClientProvider)),
 );
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>(
@@ -52,6 +60,14 @@ final logoutUseCaseProvider = Provider<Logout>(
 
 final restoreSessionUseCaseProvider = Provider<RestoreSession>(
   (ref) => RestoreSession(ref.watch(authRepositoryProvider)),
+);
+
+final adminRemoteDataSourceProvider = Provider<AdminRemoteDataSource>(
+  (ref) => AdminRemoteDataSource(ref.watch(apiClientProvider)),
+);
+
+final adminRepositoryProvider = Provider<AdminRepository>(
+  (ref) => AdminRepositoryImpl(ref.watch(adminRemoteDataSourceProvider)),
 );
 
 final kaderRemoteDataSourceProvider = Provider<KaderRemoteDataSource>(

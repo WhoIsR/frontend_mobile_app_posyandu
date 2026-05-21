@@ -9,29 +9,28 @@ import 'package:mobile/features/kader/domain/usecases/save_measurement.dart';
 import 'package:mobile/shared/risk/risk_copy.dart';
 
 void main() {
-  test('login usecase returns auth session through domain repository', () async {
-    final usecase = Login(FakeAuthRepository());
+  test(
+    'login usecase returns auth session through domain repository',
+    () async {
+      final usecase = Login(FakeAuthRepository());
 
-    final session = await usecase('3271010101010001', 'password');
+      final session = await usecase('3271010101010001', 'password');
 
-    expect(session.token, 'token');
-    expect(session.user.role, UserRole.kader);
-  });
+      expect(session.token, 'token');
+      expect(session.user.role, UserRole.kader);
+    },
+  );
 
   test('save measurement duplicate keeps backend message intact', () async {
     final usecase = SaveMeasurement(FakeKaderRepository(duplicate: true));
 
     expect(
-      () => usecase(
-        sessionId: 1,
-        childId: 2,
-        weight: 10.2,
-        height: 84.5,
-      ),
+      () => usecase(sessionId: 1, childId: 2, weight: 10.2, height: 84.5),
       throwsA(
         predicate(
-          (error) =>
-              error.toString().contains('Balita ini sudah dicatat pada sesi hari ini.'),
+          (error) => error.toString().contains(
+            'Balita ini sudah dicatat pada sesi hari ini.',
+          ),
         ),
       ),
     );
@@ -91,7 +90,11 @@ class FakeKaderRepository implements KaderRepository {
     if (duplicate) {
       throw Exception('Balita ini sudah dicatat pada sesi hari ini.');
     }
-    return const MeasurementResult(id: 1, predictionStatus: 'selesai', riskLevel: 'sedang');
+    return const MeasurementResult(
+      id: 1,
+      predictionStatus: 'selesai',
+      riskLevel: 'sedang',
+    );
   }
 
   @override
