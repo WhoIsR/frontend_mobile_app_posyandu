@@ -504,11 +504,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Detail rujukan'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const Key('validateReferralDetailButton')),
+    );
     await tester.tap(find.byKey(const Key('validateReferralDetailButton')));
     await tester.pumpAndSettle();
 
     expect(bidan.validatedReferralId, 31);
     expect(find.text('Validasi tersimpan'), findsOneWidget);
+  });
+
+  testWidgets('Bidan rujukan dan PMT menampilkan konteks operasional', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan)),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '1976010101010001');
+
+    await tester.tap(find.text('Rujukan').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Usia 31 bulan'), findsOneWidget);
+    expect(find.text('BB/TB: 10.2 kg / 84.5 cm'), findsOneWidget);
+
+    await tester.tap(find.text('Raka Pratama').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Konteks skrining'), findsOneWidget);
+    expect(find.text('Keputusan & catatan'), findsOneWidget);
+    expect(find.textContaining('bukan diagnosis'), findsWidgets);
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('PMT').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Stok 7 dus'), findsOneWidget);
+    expect(find.text('Minimum aman 10 dus'), findsOneWidget);
+    expect(find.text('Prioritas distribusi'), findsOneWidget);
   });
 
   testWidgets('Admin bisa preview laporan PDF', (tester) async {
@@ -790,6 +822,10 @@ class FakeBidanRepository implements BidanRepository {
         namaIbu: 'Wulan',
         riskLevel: 'tinggi',
         status: 'menunggu_validasi',
+        tanggalLahir: '2023-10-01',
+        beratBadan: 10.2,
+        tinggiBadan: 84.5,
+        tanggalUkur: '2026-05-19',
       ),
     ];
   }

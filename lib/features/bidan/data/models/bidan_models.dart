@@ -12,6 +12,10 @@ class ReferralModel extends Referral {
     required super.namaIbu,
     required super.riskLevel,
     required super.status,
+    super.tanggalLahir,
+    super.beratBadan,
+    super.tinggiBadan,
+    super.tanggalUkur,
   });
 
   factory ReferralModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,10 @@ class ReferralModel extends Referral {
       namaIbu: json['nama_ibu']?.toString() ?? '-',
       riskLevel: json['risk_level']?.toString() ?? 'rendah',
       status: json['status_rujukan']?.toString() ?? '-',
+      tanggalLahir: json['tanggal_lahir']?.toString(),
+      beratBadan: _asDouble(json['berat_badan']),
+      tinggiBadan: _asDouble(json['tinggi_badan']),
+      tanggalUkur: json['tanggal_ukur']?.toString(),
     );
   }
 }
@@ -69,4 +77,10 @@ List<AppNotification> notificationModels(Map<String, dynamic> json) {
 int _asInt(Object? value) {
   if (value is int) return value;
   return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double? _asDouble(Object? value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }

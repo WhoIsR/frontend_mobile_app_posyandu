@@ -401,48 +401,99 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
           right: 16,
           bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
         ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              'Detail rujukan',
-              style: Theme.of(sheetContext).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${referral.namaBalita} | Ibu: ${referral.namaIbu}',
-              style: const TextStyle(color: LedgerColors.inkSoft),
-            ),
-            const SizedBox(height: 12),
-            RiskBadge(risk: referral.riskLevel),
-            const SizedBox(height: 12),
-            const Text(
-              'Validasi ini mencatat keputusan tindak lanjut, bukan diagnosis.',
-              style: TextStyle(color: LedgerColors.inkSoft),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              key: const Key('validateReferralDetailButton'),
-              onPressed: () async {
-                await ref
-                    .read(bidanDashboardControllerProvider.notifier)
-                    .validateReferral(
-                      referralId: referral.id,
-                      childId: referral.childId,
-                      decision: _decision,
-                      note: _noteController.text,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Detail rujukan',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${referral.namaBalita} | Ibu: ${referral.namaIbu}',
+                style: const TextStyle(color: LedgerColors.inkSoft),
+              ),
+              const SizedBox(height: 12),
+              _ReferralContextStrip(referral: referral),
+              const SizedBox(height: 12),
+              LedgerPanel(
+                title: 'Konteks skrining',
+                subtitle: 'Label risiko adalah skrining awal, bukan diagnosis.',
+                accent: referral.riskLevel == 'tinggi'
+                    ? LedgerColors.review
+                    : LedgerColors.attention,
+                child: Row(
+                  children: [
+                    RiskBadge(risk: referral.riskLevel),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${_measurementText(referral)} | ${_readableStatus(referral.status)}',
+                        style: const TextStyle(color: LedgerColors.inkSoft),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SectionTitle('Keputusan & catatan'),
+              DropdownButtonFormField<String>(
+                initialValue: _decision,
+                decoration: const InputDecoration(labelText: 'Keputusan'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'observasi',
+                    child: Text('Observasi'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'konseling',
+                    child: Text('Konseling'),
+                  ),
+                  DropdownMenuItem(value: 'pmt', child: Text('PMT')),
+                  DropdownMenuItem(
+                    value: 'rujuk_puskesmas',
+                    child: Text('Rujuk Puskesmas'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'cek_ulang_data',
+                    child: Text('Cek ulang data'),
+                  ),
+                ],
+                onChanged: (value) =>
+                    setState(() => _decision = value ?? 'observasi'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _noteController,
+                minLines: 2,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Catatan bidan'),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                key: const Key('validateReferralDetailButton'),
+                onPressed: () async {
+                  await ref
+                      .read(bidanDashboardControllerProvider.notifier)
+                      .validateReferral(
+                        referralId: referral.id,
+                        childId: referral.childId,
+                        decision: _decision,
+                        note: _noteController.text,
+                      );
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Validasi tersimpan')),
                     );
-                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Validasi tersimpan')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Simpan Validasi'),
-            ),
-          ],
+                  }
+                },
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Simpan Validasi'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -480,12 +531,155 @@ class _ReferralRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LedgerListRow(
-      title: referral.namaBalita,
-      subtitle:
-          'Ibu: ${referral.namaIbu} | ${_readableStatus(referral.status)}',
-      trailing: RiskBadge(risk: referral.riskLevel),
-      onTap: onTap,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.bidanBlue.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      referral.namaBalita,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _ageText(referral),
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      'Ibu: ${referral.namaIbu}',
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _measurementText(referral),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _readableStatus(referral.status),
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              RiskBadge(risk: referral.riskLevel),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: LedgerColors.inkMuted,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReferralContextStrip extends StatelessWidget {
+  const _ReferralContextStrip({required this.referral});
+
+  final Referral referral;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniInfoTile(
+            label: 'Usia',
+            value: _ageText(referral).replaceFirst('Usia ', ''),
+            icon: Icons.cake_outlined,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MiniInfoTile(
+            label: 'BB/TB',
+            value: _measurementText(referral).replaceFirst('BB/TB: ', ''),
+            icon: Icons.monitor_weight_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniInfoTile extends StatelessWidget {
+  const _MiniInfoTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: LedgerColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: LedgerColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: LedgerColors.bidanBlue),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: LedgerColors.inkSoft,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -497,16 +691,32 @@ class _StockRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LedgerListRow(
-      title: stock.name,
-      subtitle:
-          'Stok ${stock.stock} ${stock.unit} | Minimum ${stock.minimumStock}',
-      trailing: StatusBadge(
-        label: stock.isLow ? 'Stok menipis' : 'Aman',
-        color: stock.isLow ? LedgerColors.attention : LedgerColors.primary,
-        softColor: stock.isLow
-            ? LedgerColors.attentionSoft
-            : LedgerColors.primarySoft,
+    return LedgerPanel(
+      title: stock.isLow ? 'Prioritas distribusi' : stock.name,
+      subtitle: stock.name,
+      accent: stock.isLow ? LedgerColors.attention : LedgerColors.primary,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Stok ${stock.stock} ${stock.unit}',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              'Minimum aman ${stock.minimumStock} ${stock.unit}',
+              style: const TextStyle(color: LedgerColors.inkSoft),
+            ),
+          ),
+          StatusBadge(
+            label: stock.isLow ? 'Stok menipis' : 'Aman',
+            color: stock.isLow ? LedgerColors.attention : LedgerColors.primary,
+            softColor: stock.isLow
+                ? LedgerColors.attentionSoft
+                : LedgerColors.primarySoft,
+          ),
+        ],
       ),
     );
   }
@@ -787,4 +997,27 @@ class _ReportAction extends StatelessWidget {
 
 String _readableStatus(String status) {
   return status.replaceAll('_', ' ');
+}
+
+String _ageText(Referral referral) {
+  final raw = referral.tanggalLahir;
+  if (raw == null) return 'Usia belum tercatat';
+  final birthDate = DateTime.tryParse(raw);
+  if (birthDate == null) return 'Usia belum tercatat';
+  final now = DateTime.now();
+  var months = (now.year - birthDate.year) * 12 + now.month - birthDate.month;
+  if (now.day < birthDate.day) months -= 1;
+  if (months < 0) months = 0;
+  return 'Usia $months bulan';
+}
+
+String _measurementText(Referral referral) {
+  final weight = referral.beratBadan;
+  final height = referral.tinggiBadan;
+  if (weight == null || height == null) return 'BB/TB belum tercatat';
+  return 'BB/TB: ${_number(weight)} kg / ${_number(height)} cm';
+}
+
+String _number(double value) {
+  return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
 }

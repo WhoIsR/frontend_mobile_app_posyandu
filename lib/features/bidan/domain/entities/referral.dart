@@ -6,6 +6,10 @@ class Referral {
     required this.namaIbu,
     required this.riskLevel,
     required this.status,
+    this.tanggalLahir,
+    this.beratBadan,
+    this.tinggiBadan,
+    this.tanggalUkur,
   });
 
   final int id;
@@ -14,4 +18,8 @@ class Referral {
   final String namaIbu;
   final String riskLevel;
   final String status;
+  final String? tanggalLahir;
+  final double? beratBadan;
+  final double? tinggiBadan;
+  final String? tanggalUkur;
 }
