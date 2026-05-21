@@ -22,7 +22,7 @@ class AdminDashboardPage extends ConsumerWidget {
       'akun' => _accounts(context, ref, state),
       'posyandu' => _posyandu(context, ref, state),
       'laporan' => _reports(context, ref, state),
-      _ => _home(context, state),
+      _ => _home(context, ref, state),
     };
     return RefreshIndicator(
       onRefresh: () =>
@@ -31,12 +31,19 @@ class AdminDashboardPage extends ConsumerWidget {
     );
   }
 
-  List<Widget> _home(BuildContext context, AdminDashboardState state) {
+  List<Widget> _home(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
     final bidanCount = state.accounts
-        .where((row) => row.role == 'bidan')
+        .where((row) => row.role == 'bidan' && row.status == 'aktif')
         .length;
     final kaderCount = state.accounts
-        .where((row) => row.role == 'kader')
+        .where((row) => row.role == 'kader' && row.status == 'aktif')
+        .length;
+    final inactiveCount = state.accounts
+        .where((row) => row.status == 'nonaktif')
         .length;
     return [
       const PageHeader(
@@ -65,6 +72,30 @@ class AdminDashboardPage extends ConsumerWidget {
         ],
       ),
       const SizedBox(height: 12),
+      LedgerPanel(
+        title: 'Akun nonaktif',
+        subtitle: inactiveCount == 0
+            ? 'Tidak ada akun yang perlu dicek.'
+            : '$inactiveCount perlu dicek sebelum jadwal Posyandu berikutnya.',
+        accent: inactiveCount == 0
+            ? LedgerColors.primary
+            : LedgerColors.attention,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$inactiveCount perlu dicek',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: () => _openAccountForm(context, ref),
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('Tambah akun kerja'),
+            ),
+          ],
+        ),
+      ),
       LedgerListRow(
         title: 'Akun aktif',
         subtitle: '$bidanCount bidan dan $kaderCount kader terdaftar.',
@@ -108,26 +139,17 @@ class AdminDashboardPage extends ConsumerWidget {
       const SizedBox(height: 12),
       if (state.accounts.isEmpty)
         const EmptyState(text: 'Belum ada akun.')
-      else
+      else ...[
+        if (state.message != null) ...[
+          InlineMessage(text: state.message!, isError: state.isError),
+          const SizedBox(height: 12),
+        ],
         ...state.accounts.map(
-          (row) => LedgerListRow(
-            title: row.name,
-            subtitle: '${row.role.toUpperCase()} | ${row.nikNip}',
-            trailing: StatusBadge(
-              label: row.status,
-              color: row.status == 'aktif'
-                  ? LedgerColors.primary
-                  : LedgerColors.inkSoft,
-              softColor: row.status == 'aktif'
-                  ? LedgerColors.primarySoft
-                  : LedgerColors.line,
-            ),
+          (row) => _AdminAccountCard(
+            account: row,
             onTap: () => _openAccountActions(context, ref, row),
           ),
         ),
-      if (state.message != null) ...[
-        const SizedBox(height: 12),
-        InlineMessage(text: state.message!, isError: state.isError),
       ],
     ];
   }
@@ -247,14 +269,17 @@ class AdminDashboardPage extends ConsumerWidget {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Aksi akun', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Aksi akun',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
               const SizedBox(height: 4),
               Text(
                 account.name,
@@ -263,7 +288,7 @@ class AdminDashboardPage extends ConsumerWidget {
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () {
-                  Navigator.of(context).pop();
+                  Navigator.of(sheetContext).pop();
                   _openAccountForm(context, ref, account);
                 },
                 icon: const Icon(Icons.edit_outlined),
@@ -271,8 +296,60 @@ class AdminDashboardPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  _openStatusConfirmation(context, ref, account, nextStatus);
+                },
+                icon: Icon(
+                  nextStatus == 'nonaktif'
+                      ? Icons.block
+                      : Icons.check_circle_outline,
+                ),
+                label: Text(
+                  nextStatus == 'nonaktif' ? 'Nonaktifkan' : 'Aktifkan',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openStatusConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    AdminAccount account,
+    String nextStatus,
+  ) {
+    final disabling = nextStatus == 'nonaktif';
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                disabling ? 'Nonaktifkan akun?' : 'Aktifkan akun?',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                disabling
+                    ? '${account.name} tidak bisa login lagi, tapi histori pengukuran dan validasi tetap aman.'
+                    : '${account.name} akan bisa login kembali.',
+                style: const TextStyle(
+                  color: LedgerColors.inkSoft,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
                 onPressed: () async {
-                  Navigator.of(context).pop();
                   await ref
                       .read(adminDashboardControllerProvider.notifier)
                       .saveAccount(
@@ -283,15 +360,17 @@ class AdminDashboardPage extends ConsumerWidget {
                         posyanduId: account.posyanduId,
                         status: nextStatus,
                       );
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
                 },
                 icon: Icon(
-                  nextStatus == 'nonaktif'
-                      ? Icons.block
-                      : Icons.check_circle_outline,
+                  disabling ? Icons.block : Icons.check_circle_outline,
                 ),
-                label: Text(
-                  nextStatus == 'nonaktif' ? 'Nonaktifkan' : 'Aktifkan',
-                ),
+                label: Text(disabling ? 'Ya, nonaktifkan' : 'Ya, aktifkan'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: const Text('Batal'),
               ),
             ],
           ),
@@ -477,6 +556,107 @@ class AdminDashboardPage extends ConsumerWidget {
         district.dispose();
       });
     });
+  }
+}
+
+class _AdminAccountCard extends StatelessWidget {
+  const _AdminAccountCard({required this.account, required this.onTap});
+
+  final AdminAccount account;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = account.status == 'aktif';
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SoftIcon(
+                icon: account.role == 'bidan'
+                    ? Icons.medical_services_outlined
+                    : Icons.groups_outlined,
+                color: account.role == 'bidan'
+                    ? LedgerColors.bidanBlue
+                    : LedgerColors.primary,
+                softColor: account.role == 'bidan'
+                    ? LedgerColors.healthAquaSoft
+                    : LedgerColors.primarySoft,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      account.name,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      account.role.toUpperCase(),
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'NIP/NIK ${account.nikNip}',
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      account.posyanduId == null
+                          ? 'Semua Posyandu'
+                          : 'Posyandu ${account.posyanduId}',
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              StatusBadge(
+                label: account.status,
+                color: active ? LedgerColors.primary : LedgerColors.inkSoft,
+                softColor: active
+                    ? LedgerColors.primarySoft
+                    : LedgerColors.line,
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: LedgerColors.inkMuted,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

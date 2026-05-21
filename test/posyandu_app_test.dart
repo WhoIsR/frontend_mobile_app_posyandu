@@ -426,9 +426,32 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nonaktifkan'));
     await tester.pumpAndSettle();
+    expect(find.text('Nonaktifkan akun?'), findsOneWidget);
+    await tester.tap(find.text('Ya, nonaktifkan'));
+    await tester.pumpAndSettle();
 
     expect(admin.updatedAccountStatus, 'nonaktif');
     expect(find.text('Status akun diperbarui.'), findsOneWidget);
+  });
+
+  testWidgets('Admin dashboard dan akun tampil operasional', (tester) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin)),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    expect(find.text('Akun nonaktif'), findsOneWidget);
+    expect(find.text('1 perlu dicek'), findsOneWidget);
+    expect(find.text('Tambah akun kerja'), findsOneWidget);
+
+    await tester.tap(find.text('Akun').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Bidan Sari'), findsOneWidget);
+    expect(find.text('NIP/NIK 1976010101010001'), findsOneWidget);
+    expect(find.text('Posyandu 1'), findsWidgets);
+    expect(find.text('Kader Cuti'), findsOneWidget);
+    expect(find.text('nonaktif'), findsWidgets);
   });
 
   testWidgets('Kader tap balita membuka aksi cepat dan bisa input BB TB', (
@@ -918,9 +941,17 @@ class FakeAdminRepository implements AdminRepository {
         status: 'aktif',
         posyanduId: 1,
       ),
+      AdminAccount(
+        id: 4,
+        name: 'Kader Cuti',
+        nikNip: '3276010101010004',
+        role: 'kader',
+        status: 'nonaktif',
+        posyanduId: 1,
+      ),
     ];
     if (createdAccount != null) {
-      rows.add(createdAccount!);
+      rows.insert(0, createdAccount!);
     }
     return rows;
   }
