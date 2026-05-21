@@ -28,8 +28,13 @@ class LedgerTheme {
       scaffoldBackgroundColor: LedgerColors.paper,
       visualDensity: VisualDensity.standard,
       textTheme: const TextTheme(
+        headlineSmall: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w900,
+          height: 1.12,
+        ),
         titleLarge: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        titleMedium: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
         bodyLarge: TextStyle(fontSize: 15, height: 1.4),
         bodyMedium: TextStyle(fontSize: 14, height: 1.35),
         labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
@@ -40,9 +45,12 @@ class LedgerTheme {
             brightness: Brightness.light,
           ).copyWith(
             primary: LedgerColors.primary,
+            onPrimary: Colors.white,
             secondary: LedgerColors.bidanBlue,
             surface: LedgerColors.surface,
+            surfaceContainerHighest: LedgerColors.surfaceAlt,
             outline: LedgerColors.line,
+            error: LedgerColors.review,
           ),
       appBarTheme: const AppBarTheme(
         backgroundColor: LedgerColors.surface,
@@ -55,6 +63,30 @@ class LedgerTheme {
           fontSize: 22,
           fontWeight: FontWeight.w800,
         ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: LedgerColors.surface,
+        surfaceTintColor: LedgerColors.glow,
+        showDragHandle: true,
+        dragHandleColor: LedgerColors.inkMuted,
+        modalBarrierColor: Color(0x660B1F17),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: LedgerColors.surface,
+        surfaceTintColor: LedgerColors.glow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: LedgerColors.ink,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 78,
@@ -93,9 +125,17 @@ class LedgerTheme {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: LedgerColors.line),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: LedgerColors.line),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: LedgerColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: LedgerColors.review),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(

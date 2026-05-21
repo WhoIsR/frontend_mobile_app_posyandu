@@ -95,6 +95,7 @@ void main() {
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
 
+    await _scrollToKaderMeasurementFields(tester);
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
     await tester.enterText(find.byKey(const Key('heightField')), '84.5');
     await _scrollToKaderSaveButton(tester);
@@ -123,6 +124,7 @@ void main() {
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
 
+    await _scrollToKaderMeasurementFields(tester);
     await tester.enterText(find.byKey(const Key('weightField')), '10.2');
     await tester.enterText(find.byKey(const Key('heightField')), '84.5');
     await _scrollToKaderSaveButton(tester);
@@ -147,6 +149,7 @@ void main() {
       await tester.tap(find.text('Sesi').last);
       await tester.pumpAndSettle();
 
+      await _scrollToKaderMeasurementFields(tester);
       await tester.enterText(find.byKey(const Key('weightField')), '10.2');
       await tester.enterText(find.byKey(const Key('heightField')), '84.5');
       await _scrollToKaderSaveButton(tester);
@@ -607,6 +610,15 @@ void main() {
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialApp.theme?.colorScheme.primary, LedgerColors.primary);
     expect(materialApp.theme?.scaffoldBackgroundColor, LedgerColors.paper);
+    expect(materialApp.theme?.bottomSheetTheme.showDragHandle, true);
+    expect(
+      materialApp.theme?.snackBarTheme.behavior,
+      SnackBarBehavior.floating,
+    );
+    expect(
+      materialApp.theme?.textTheme.headlineSmall?.fontWeight,
+      FontWeight.w900,
+    );
   });
 }
 
@@ -643,6 +655,15 @@ Future<void> _submitLogin(
 Future<void> _scrollToKaderSaveButton(WidgetTester tester) async {
   await tester.scrollUntilVisible(
     find.byKey(const Key('saveMeasurementButton')),
+    120,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _scrollToKaderMeasurementFields(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.byKey(const Key('weightField')),
     120,
     scrollable: find.byType(Scrollable).last,
   );

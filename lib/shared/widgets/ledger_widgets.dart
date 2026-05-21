@@ -22,16 +22,16 @@ class LedgerPanel extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: LedgerColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: LedgerColors.line),
         boxShadow: [
           BoxShadow(
             color: accent.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -44,7 +44,7 @@ class LedgerPanel extends StatelessWidget {
               decoration: BoxDecoration(
                 color: accent,
                 borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(20),
+                  left: Radius.circular(22),
                 ),
               ),
             ),
@@ -57,7 +57,7 @@ class LedgerPanel extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -65,7 +65,7 @@ class LedgerPanel extends StatelessWidget {
                       subtitle,
                       style: const TextStyle(
                         color: LedgerColors.inkSoft,
-                        height: 1.35,
+                        height: 1.42,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -129,9 +129,7 @@ class PageHeader extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -216,7 +214,7 @@ class MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -266,11 +264,11 @@ class SoftIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 40,
+      width: 42,
+      height: 42,
       decoration: BoxDecoration(
         color: softColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.10),
@@ -320,7 +318,7 @@ class LedgerListRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -330,12 +328,15 @@ class LedgerListRow extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(color: LedgerColors.inkSoft),
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        height: 1.35,
+                      ),
                     ),
                   ],
                 ),
@@ -420,12 +421,12 @@ class SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         text,
         style: Theme.of(
           context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -438,25 +439,35 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const SoftIcon(
-              icon: Icons.inbox_outlined,
-              color: LedgerColors.inkSoft,
-              softColor: LedgerColors.surfaceAlt,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(color: LedgerColors.inkSoft),
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: LedgerColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SoftIcon(
+            icon: Icons.inbox_outlined,
+            color: LedgerColors.inkSoft,
+            softColor: LedgerColors.surfaceAlt,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Belum ada data',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            text,
+            style: const TextStyle(color: LedgerColors.inkSoft, height: 1.4),
+          ),
+        ],
       ),
     );
   }
@@ -471,20 +482,33 @@ class InlineMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isError ? LedgerColors.reviewSoft : LedgerColors.primarySoft,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isError ? LedgerColors.review : LedgerColors.primary,
         ),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isError ? LedgerColors.review : LedgerColors.primary,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.check_circle_outline,
+            color: isError ? LedgerColors.review : LedgerColors.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: isError ? LedgerColors.review : LedgerColors.primary,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
