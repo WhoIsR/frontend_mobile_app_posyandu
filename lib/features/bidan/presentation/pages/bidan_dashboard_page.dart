@@ -297,6 +297,14 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
         subtitle: 'Unduh rekap MVP sesuai kebutuhan Posyandu dan bidan.',
       ),
       const SizedBox(height: 12),
+      _ReportRangePicker(
+        startDate: state.reportStartDate,
+        endDate: state.reportEndDate,
+        onPick: (range) => ref
+            .read(bidanDashboardControllerProvider.notifier)
+            .setReportRange(range.start, range.end),
+      ),
+      const SizedBox(height: 12),
       _ReportPicker(
         onDownload: (type) => ref
             .read(bidanDashboardControllerProvider.notifier)
@@ -588,6 +596,49 @@ class _SoftIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, size: 20, color: LedgerColors.primary),
+    );
+  }
+}
+
+class _ReportRangePicker extends StatelessWidget {
+  const _ReportRangePicker({
+    required this.startDate,
+    required this.endDate,
+    required this.onPick,
+  });
+
+  final String? startDate;
+  final String? endDate;
+  final ValueChanged<DateTimeRange> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = startDate == null || endDate == null
+        ? 'Semua tanggal'
+        : '$startDate sampai $endDate';
+    return LedgerPanel(
+      title: 'Rentang laporan',
+      subtitle: label,
+      accent: LedgerColors.bidanBlue,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          final now = DateTime.now();
+          final range = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime(now.year - 2),
+            lastDate: DateTime(now.year + 1, 12, 31),
+            initialDateRange: DateTimeRange(
+              start: startDate == null
+                  ? DateTime(now.year, now.month, 1)
+                  : DateTime.parse(startDate!),
+              end: endDate == null ? now : DateTime.parse(endDate!),
+            ),
+          );
+          if (range != null) onPick(range);
+        },
+        icon: const Icon(Icons.date_range_outlined),
+        label: const Text('Pilih tanggal'),
+      ),
     );
   }
 }

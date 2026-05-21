@@ -62,8 +62,16 @@ class BidanRepositoryImpl implements BidanRepository {
   Future<List<PmtStock>> pmtStock() => _remoteDataSource.pmtStock();
 
   @override
-  Future<Uint8List> downloadReport(String type) {
-    return _remoteDataSource.downloadReport(type);
+  Future<Uint8List> downloadReport(
+    String type, {
+    String? startDate,
+    String? endDate,
+  }) {
+    return _remoteDataSource.downloadReport(
+      type,
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 
   @override

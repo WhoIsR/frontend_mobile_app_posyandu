@@ -88,6 +88,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
           AdminDashboardPage(),
           AdminDashboardPage(focus: 'akun'),
           AdminDashboardPage(focus: 'posyandu'),
+          AdminDashboardPage(focus: 'laporan'),
         ],
       ),
       UserRole.bidan => const _RoleShellSpec(
@@ -185,6 +186,10 @@ const _adminDestinations = [
     icon: Icon(Icons.home_work_outlined),
     label: 'Posyandu',
   ),
+  NavigationDestination(
+    icon: Icon(Icons.description_outlined),
+    label: 'Laporan',
+  ),
 ];
 
-const _adminTitles = ['Beranda Admin', 'Akun', 'Posyandu'];
+const _adminTitles = ['Beranda Admin', 'Akun', 'Posyandu', 'Laporan'];

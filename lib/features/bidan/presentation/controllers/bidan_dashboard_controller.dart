@@ -17,6 +17,8 @@ class BidanDashboardState {
     this.isError = false,
     this.reportBytes,
     this.reportType,
+    this.reportStartDate,
+    this.reportEndDate,
   });
 
   final BidanDashboardData? data;
@@ -27,6 +29,8 @@ class BidanDashboardState {
   final bool isError;
   final Uint8List? reportBytes;
   final String? reportType;
+  final String? reportStartDate;
+  final String? reportEndDate;
 
   BidanDashboardState copyWith({
     BidanDashboardData? data,
@@ -39,6 +43,8 @@ class BidanDashboardState {
     Uint8List? reportBytes,
     String? reportType,
     bool clearReport = false,
+    String? reportStartDate,
+    String? reportEndDate,
   }) {
     return BidanDashboardState(
       data: data ?? this.data,
@@ -49,6 +55,8 @@ class BidanDashboardState {
       isError: isError ?? this.isError,
       reportBytes: clearReport ? null : reportBytes ?? this.reportBytes,
       reportType: clearReport ? null : reportType ?? this.reportType,
+      reportStartDate: reportStartDate ?? this.reportStartDate,
+      reportEndDate: reportEndDate ?? this.reportEndDate,
     );
   }
 }
@@ -155,7 +163,11 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
 
   Future<void> downloadReport(String type) async {
     try {
-      final bytes = await ref.read(downloadReportProvider)(type);
+      final bytes = await ref.read(downloadReportProvider)(
+        type,
+        startDate: state.reportStartDate,
+        endDate: state.reportEndDate,
+      );
       state = state.copyWith(
         message: 'Preview PDF siap',
         isError: false,
@@ -165,6 +177,15 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     } catch (error) {
       state = state.copyWith(message: _errorText(error), isError: true);
     }
+  }
+
+  void setReportRange(DateTime start, DateTime end) {
+    state = state.copyWith(
+      reportStartDate: _dateOnly(start),
+      reportEndDate: _dateOnly(end),
+      clearReport: true,
+      clearMessage: true,
+    );
   }
 
   Future<void> openNotification(int id) async {
@@ -199,6 +220,8 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     if (error is ApiException) return error.message;
     return 'Koneksi ke server belum berhasil. Coba lagi sebentar.';
   }
+
+  String _dateOnly(DateTime value) => value.toIso8601String().split('T').first;
 }
 
 final bidanDashboardControllerProvider =

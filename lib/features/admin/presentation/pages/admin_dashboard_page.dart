@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../../../app/ledger_theme.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
@@ -17,6 +18,7 @@ class AdminDashboardPage extends ConsumerWidget {
     final sections = switch (focus) {
       'akun' => _accounts(context, state),
       'posyandu' => _posyandu(context, state),
+      'laporan' => _reports(context, ref, state),
       _ => _home(context, state),
     };
     return RefreshIndicator(
@@ -55,6 +57,11 @@ class AdminDashboardPage extends ConsumerWidget {
         title: 'Posyandu',
         subtitle: '${state.posyandu.length} Posyandu tercatat.',
         trailing: const Icon(Icons.home_work_outlined),
+      ),
+      LedgerListRow(
+        title: 'Laporan PDF',
+        subtitle: 'Preview/share 3 laporan PRD dari data server.',
+        trailing: const Icon(Icons.description_outlined),
       ),
       if (state.message != null)
         InlineMessage(text: state.message!, isError: state.isError),
@@ -112,5 +119,168 @@ class AdminDashboardPage extends ConsumerWidget {
           ),
         ),
     ];
+  }
+
+  List<Widget> _reports(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
+    return [
+      const SectionTitle('Laporan PDF'),
+      const Text(
+        'Admin dapat mengambil laporan operasional yang sama untuk kebutuhan demo dan audit dasar.',
+        style: TextStyle(color: LedgerColors.inkSoft),
+      ),
+      const SizedBox(height: 12),
+      _AdminReportRangePicker(
+        startDate: state.reportStartDate,
+        endDate: state.reportEndDate,
+        onPick: (range) => ref
+            .read(adminDashboardControllerProvider.notifier)
+            .setReportRange(range.start, range.end),
+      ),
+      const SizedBox(height: 12),
+      _AdminReportAction(
+        title: 'Prediksi Risiko',
+        subtitle: 'Rekap hasil skrining balita.',
+        icon: Icons.fact_check_outlined,
+        onPressed: () => ref
+            .read(adminDashboardControllerProvider.notifier)
+            .downloadReport('prediksi'),
+      ),
+      _AdminReportAction(
+        title: 'Kehadiran Posyandu',
+        subtitle: 'Daftar kehadiran dari sesi Posyandu.',
+        icon: Icons.event_available_outlined,
+        onPressed: () => ref
+            .read(adminDashboardControllerProvider.notifier)
+            .downloadReport('kehadiran'),
+      ),
+      _AdminReportAction(
+        title: 'Distribusi PMT',
+        subtitle: 'Catatan penyaluran paket PMT.',
+        icon: Icons.inventory_outlined,
+        onPressed: () => ref
+            .read(adminDashboardControllerProvider.notifier)
+            .downloadReport('distribusi-pmt'),
+      ),
+      if (state.reportBytes != null) ...[
+        const SizedBox(height: 12),
+        LedgerPanel(
+          title: 'Preview PDF siap',
+          subtitle:
+              'Laporan ${state.reportType ?? 'posyandu'} sudah diterima dari server.',
+          accent: LedgerColors.bidanBlue,
+          child: FilledButton.icon(
+            onPressed: () => Printing.sharePdf(
+              bytes: state.reportBytes!,
+              filename: 'laporan-${state.reportType ?? 'posyandu'}.pdf',
+            ),
+            icon: const Icon(Icons.ios_share_outlined),
+            label: const Text('Bagikan / Simpan'),
+          ),
+        ),
+      ],
+      if (state.message != null)
+        InlineMessage(text: state.message!, isError: state.isError),
+    ];
+  }
+}
+
+class _AdminReportRangePicker extends StatelessWidget {
+  const _AdminReportRangePicker({
+    required this.startDate,
+    required this.endDate,
+    required this.onPick,
+  });
+
+  final String? startDate;
+  final String? endDate;
+  final ValueChanged<DateTimeRange> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = startDate == null || endDate == null
+        ? 'Semua tanggal'
+        : '$startDate sampai $endDate';
+    return LedgerPanel(
+      title: 'Rentang laporan',
+      subtitle: label,
+      accent: LedgerColors.bidanBlue,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          final now = DateTime.now();
+          final range = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime(now.year - 2),
+            lastDate: DateTime(now.year + 1, 12, 31),
+            initialDateRange: DateTimeRange(
+              start: startDate == null
+                  ? DateTime(now.year, now.month, 1)
+                  : DateTime.parse(startDate!),
+              end: endDate == null ? now : DateTime.parse(endDate!),
+            ),
+          );
+          if (range != null) onPick(range);
+        },
+        icon: const Icon(Icons.date_range_outlined),
+        label: const Text('Pilih tanggal'),
+      ),
+    );
+  }
+}
+
+class _AdminReportAction extends StatelessWidget {
+  const _AdminReportAction({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(icon, color: LedgerColors.inkSoft),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: LedgerColors.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 104,
+              child: FilledButton(
+                onPressed: onPressed,
+                child: const Text('Preview'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

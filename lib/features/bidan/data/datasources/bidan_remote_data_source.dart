@@ -64,8 +64,18 @@ class BidanRemoteDataSource {
     return notificationModels(json);
   }
 
-  Future<Uint8List> downloadReport(String type) {
-    return _apiClient.download('/laporan/$type');
+  Future<Uint8List> downloadReport(
+    String type, {
+    String? startDate,
+    String? endDate,
+  }) {
+    return _apiClient.download(
+      '/laporan/$type',
+      query: {
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      },
+    );
   }
 
   Future<void> markNotificationRead(int id) async {

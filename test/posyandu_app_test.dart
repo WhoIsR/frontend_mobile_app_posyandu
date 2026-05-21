@@ -66,6 +66,7 @@ void main() {
     expect(find.text('Beranda Admin'), findsOneWidget);
     expect(find.text('Akun'), findsWidgets);
     expect(find.text('Posyandu'), findsWidgets);
+    expect(find.text('Laporan'), findsWidgets);
     expect(find.text('Input pengukuran'), findsNothing);
     expect(find.text('Validasi Medis'), findsNothing);
   });
@@ -363,7 +364,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bidan.downloadedReports, ['prediksi']);
-    expect(find.text('Preview PDF siap'), findsOneWidget);
+    expect(find.text('Preview PDF siap'), findsWidgets);
     expect(find.text('Bagikan / Simpan'), findsOneWidget);
   });
 
@@ -382,6 +383,26 @@ void main() {
     await tester.tap(find.text('Posyandu').last);
     await tester.pumpAndSettle();
     expect(find.text('Posyandu Melati 03'), findsOneWidget);
+  });
+
+  testWidgets('Admin bisa preview laporan PDF', (tester) async {
+    final admin = FakeAdminRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin), admin: admin),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    await tester.tap(find.text('Laporan').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Preview').first);
+    await tester.pumpAndSettle();
+
+    expect(admin.downloadedReports, ['prediksi']);
+    await tester.drag(find.byType(Scrollable).last, const Offset(0, -320));
+    await tester.pumpAndSettle();
+    expect(find.text('Preview PDF siap'), findsWidgets);
+    expect(find.text('Bagikan / Simpan'), findsOneWidget);
   });
 
   testWidgets('Kader tidak melihat fitur khusus Bidan', (tester) async {
@@ -678,7 +699,11 @@ class FakeBidanRepository implements BidanRepository {
   }
 
   @override
-  Future<Uint8List> downloadReport(String type) async {
+  Future<Uint8List> downloadReport(
+    String type, {
+    String? startDate,
+    String? endDate,
+  }) async {
     downloadedReports.add(type);
     return Uint8List.fromList([1, 2, 3]);
   }
@@ -702,6 +727,8 @@ class FakeBidanRepository implements BidanRepository {
 }
 
 class FakeAdminRepository implements AdminRepository {
+  final List<String> downloadedReports = [];
+
   @override
   Future<List<AdminAccount>> accounts() async {
     return const [
@@ -735,5 +762,15 @@ class FakeAdminRepository implements AdminRepository {
         district: 'Sukamaju',
       ),
     ];
+  }
+
+  @override
+  Future<Uint8List> downloadReport(
+    String type, {
+    String? startDate,
+    String? endDate,
+  }) async {
+    downloadedReports.add(type);
+    return Uint8List.fromList([4, 5, 6]);
   }
 }

@@ -7,5 +7,11 @@ class DownloadReport {
 
   final BidanRepository _repository;
 
-  Future<Uint8List> call(String type) => _repository.downloadReport(type);
+  Future<Uint8List> call(String type, {String? startDate, String? endDate}) {
+    return _repository.downloadReport(
+      type,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
 }
