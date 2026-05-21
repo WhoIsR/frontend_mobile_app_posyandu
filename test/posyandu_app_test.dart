@@ -459,6 +459,35 @@ void main() {
     expect(find.textContaining('Hasil skrining diperbarui'), findsWidgets);
   });
 
+  testWidgets('Kader registry rows dan sesi menampilkan konteks operasional', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader)),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Usia 31 bulan'), findsOneWidget);
+    expect(find.text('Terakhir: 10.2 kg / 84.5 cm'), findsOneWidget);
+    expect(find.text('Sudah diukur sesi ini'), findsOneWidget);
+
+    await tester.tap(find.text('Raka Pratama'));
+    await tester.pumpAndSettle();
+    expect(find.text('Riwayat singkat'), findsOneWidget);
+    expect(find.text('Edit profil balita'), findsOneWidget);
+
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sesi').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Kerja hari ini'), findsOneWidget);
+    expect(find.text('Sudah diukur'), findsOneWidget);
+    expect(find.text('Belum diukur'), findsOneWidget);
+  });
+
   testWidgets('Bidan tap rujukan membuka detail dan validasi kontekstual', (
     tester,
   ) async {
@@ -651,6 +680,9 @@ class FakeKaderRepository implements KaderRepository {
         namaIbu: 'Wulan',
         tanggalLahir: '2023-10-01',
         jenisKelamin: 'L',
+        latestWeight: 10.2,
+        latestHeight: 84.5,
+        latestMeasuredAt: '2026-05-19',
       ),
     ];
   }

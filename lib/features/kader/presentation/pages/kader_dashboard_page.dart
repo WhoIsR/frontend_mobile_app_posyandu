@@ -76,6 +76,34 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     };
   }
 
+  bool _measuredToday(Balita child, KaderDashboardData? data) {
+    return data?.screening.any((row) => row.namaBalita == child.namaBalita) ??
+        false;
+  }
+
+  String _ageText(Balita child) {
+    final raw = child.tanggalLahir;
+    if (raw == null) return 'Usia belum tercatat';
+    final birthDate = DateTime.tryParse(raw);
+    if (birthDate == null) return 'Usia belum tercatat';
+    final now = DateTime.now();
+    var months = (now.year - birthDate.year) * 12 + now.month - birthDate.month;
+    if (now.day < birthDate.day) months -= 1;
+    if (months < 0) months = 0;
+    return 'Usia $months bulan';
+  }
+
+  String _latestMeasurementText(Balita child) {
+    final weight = child.latestWeight;
+    final height = child.latestHeight;
+    if (weight == null || height == null) return 'Belum ada riwayat ukur';
+    return 'Terakhir: ${_number(weight)} kg / ${_number(height)} cm';
+  }
+
+  String _number(double value) {
+    return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
+  }
+
   List<Widget> _homeSection(BuildContext context, KaderDashboardData? data) {
     final childCount = data?.children.length ?? 0;
     final screeningCount = data?.screening.length ?? 0;
@@ -135,23 +163,72 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     KaderDashboardState? state,
     Balita? firstChild,
   }) {
+    final measured =
+        data?.children.where((child) => _measuredToday(child, data)).length ??
+        0;
+    final total = data?.children.length ?? 0;
+    final remaining = total - measured;
+    Balita? nextChild;
+    for (final child in data?.children ?? const <Balita>[]) {
+      if (!_measuredToday(child, data)) {
+        nextChild = child;
+        break;
+      }
+    }
+
     return [
-      LedgerPanel(
-        title: 'Sesi hari ini',
+      PageHeader(
+        title: showMeasurement ? 'Kerja hari ini' : 'Sesi hari ini',
         subtitle: data?.session == null
             ? 'Belum ada sesi berjalan untuk Posyandu ini.'
             : 'Sesi ${data!.session!.tanggal} | Status ${data.session!.status}',
-        accent: LedgerColors.primary,
-        child: showMeasurement
-            ? const Row(
-                children: [
-                  Icon(Icons.straighten_outlined, color: LedgerColors.primary),
-                  SizedBox(width: 8),
-                  Text('Pengukuran balita'),
-                ],
-              )
-            : const Text('Tarik ke bawah untuk memuat ulang sesi.'),
+        icon: Icons.event_available_outlined,
       ),
+      const SizedBox(height: 12),
+      MetricGrid(
+        items: [
+          MetricItem(
+            label: 'Sudah diukur',
+            value: '$measured',
+            helper: 'balita sesi ini',
+            icon: Icons.check_circle_outline,
+          ),
+          MetricItem(
+            label: 'Belum diukur',
+            value: '$remaining',
+            helper: 'perlu dicatat',
+            icon: Icons.pending_actions_outlined,
+            accent: LedgerColors.attention,
+            soft: LedgerColors.attentionSoft,
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      if (showMeasurement)
+        LedgerPanel(
+          title: nextChild == null ? 'Antrean selesai' : 'Lanjutkan antrean',
+          subtitle: nextChild == null
+              ? 'Semua balita pada daftar ini sudah punya catatan skrining sesi ini.'
+              : '${nextChild.namaBalita} belum diukur. Tap untuk input cepat.',
+          accent: nextChild == null
+              ? LedgerColors.healthAqua
+              : LedgerColors.primary,
+          child: nextChild == null
+              ? const Text('Cek tab Skrining untuk melihat tindak lanjut.')
+              : FilledButton.icon(
+                  onPressed: () => _openChildActions(nextChild!),
+                  icon: const Icon(Icons.straighten_outlined),
+                  label: const Text('Input BB/TB sekarang'),
+                ),
+        )
+      else
+        LedgerPanel(
+          title: 'Mode kerja Posyandu',
+          subtitle:
+              'Tab Sesi dipakai untuk antrean dan progres pengukuran hari ini.',
+          accent: LedgerColors.healthAqua,
+          child: const Text('Tarik ke bawah untuk memuat ulang sesi.'),
+        ),
       if (showMeasurement && state != null) ...[
         const SizedBox(height: 16),
         ..._measurementSection(state, firstChild),
@@ -170,28 +247,8 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
             'Cari dulu sebelum menambah data baru agar catatan anak tidak dobel.',
         icon: Icons.child_care_outlined,
       ),
-      const SizedBox(height: 12),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Expanded(child: SectionTitle('Cari balita')),
-          SizedBox(
-            height: 40,
-            child: OutlinedButton.icon(
-              onPressed: _openCreateBalita,
-              icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-              label: const Text('Tambah Balita'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      const SizedBox(height: 16),
+      const SectionTitle('Cari balita'),
       TextField(
         controller: _searchController,
         onSubmitted: (_) => _search(),
@@ -205,20 +262,34 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
           ),
         ),
       ),
+      const SizedBox(height: 10),
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: _openCreateBalita,
+          icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+          label: const Text('Tambah Balita'),
+        ),
+      ),
       const SizedBox(height: 12),
+      if (state.message != null) ...[
+        InlineMessage(text: state.message!, isError: state.isError),
+        const SizedBox(height: 12),
+      ],
       if (data?.children.isEmpty ?? true)
         const EmptyState(text: 'Belum ada balita pada hasil pencarian.')
       else
         ...data!.children
             .take(10)
             .map(
-              (row) =>
-                  _ChildRow(child: row, onSelect: () => _openChildActions(row)),
+              (row) => _ChildRow(
+                child: row,
+                ageText: _ageText(row),
+                latestMeasurement: _latestMeasurementText(row),
+                measuredToday: _measuredToday(row, data),
+                onSelect: () => _openChildActions(row),
+              ),
             ),
-      if (state.message != null) ...[
-        const SizedBox(height: 12),
-        InlineMessage(text: state.message!, isError: state.isError),
-      ],
     ];
   }
 
@@ -381,86 +452,101 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
           right: 16,
           bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
         ),
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Text(
-              'Aksi balita',
-              style: Theme.of(sheetContext).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${child.namaBalita} | Ibu: ${child.namaIbu}',
-              style: const TextStyle(color: LedgerColors.inkSoft),
-            ),
-            const SizedBox(height: 16),
-            LedgerPanel(
-              title: 'Input BB/TB',
-              subtitle:
-                  'Catat pengukuran dari sesi berjalan tanpa pindah halaman.',
-              accent: LedgerColors.primary,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          key: const Key('quickWeightField'),
-                          controller: quickWeight,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'BB',
-                            suffixText: 'kg',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          key: const Key('quickHeightField'),
-                          controller: quickHeight,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'TB',
-                            suffixText: 'cm',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    key: const Key('quickSaveMeasurementButton'),
-                    onPressed: () => _saveQuickMeasurement(
-                      sheetContext,
-                      quickWeight,
-                      quickHeight,
-                    ),
-                    icon: const Icon(Icons.save_outlined),
-                    label: const Text('Simpan & Lanjut'),
-                  ),
-                ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Aksi balita',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
               ),
-            ),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                widget.onNavigate?.call('skrining');
-              },
-              icon: const Icon(Icons.fact_check_outlined),
-              label: const Text('Lihat skrining'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(sheetContext).pop(),
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text('Edit data'),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                '${child.namaBalita} | Ibu: ${child.namaIbu}',
+                style: const TextStyle(color: LedgerColors.inkSoft),
+              ),
+              const SizedBox(height: 12),
+              _ChildContextStrip(
+                ageText: _ageText(child),
+                latestMeasurement: _latestMeasurementText(child),
+              ),
+              const SizedBox(height: 16),
+              LedgerPanel(
+                title: 'Input BB/TB',
+                subtitle:
+                    'Catat pengukuran dari sesi berjalan tanpa pindah halaman.',
+                accent: LedgerColors.primary,
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const Key('quickWeightField'),
+                            controller: quickWeight,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'BB',
+                              suffixText: 'kg',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            key: const Key('quickHeightField'),
+                            controller: quickHeight,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'TB',
+                              suffixText: 'cm',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      key: const Key('quickSaveMeasurementButton'),
+                      onPressed: () => _saveQuickMeasurement(
+                        sheetContext,
+                        quickWeight,
+                        quickHeight,
+                      ),
+                      icon: const Icon(Icons.save_outlined),
+                      label: const Text('Simpan & Lanjut'),
+                    ),
+                  ],
+                ),
+              ),
+              const SectionTitle('Riwayat singkat'),
+              LedgerListRow(
+                title: _latestMeasurementText(child),
+                subtitle:
+                    'Dipakai sebagai pembanding cepat sebelum input hari ini.',
+                trailing: const Icon(Icons.timeline_outlined),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  widget.onNavigate?.call('skrining');
+                },
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text('Lihat skrining'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit profil balita'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -495,28 +581,192 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
 }
 
 class _ChildRow extends StatelessWidget {
-  const _ChildRow({required this.child, required this.onSelect});
+  const _ChildRow({
+    required this.child,
+    required this.ageText,
+    required this.latestMeasurement,
+    required this.measuredToday,
+    required this.onSelect,
+  });
 
   final Balita child;
+  final String ageText;
+  final String latestMeasurement;
+  final bool measuredToday;
   final VoidCallback onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return LedgerListRow(
-      title: child.namaBalita,
-      subtitle: 'Ibu: ${child.namaIbu}',
-      trailing: SizedBox(
-        height: 36,
-        child: TextButton.icon(
-          onPressed: onSelect,
-          icon: const Icon(Icons.straighten_outlined, size: 16),
-          label: const Text('Ukur'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onSelect,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      child.namaBalita,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      ageText,
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      'Ibu: ${child.namaIbu}',
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      latestMeasurement,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  StatusBadge(
+                    label: measuredToday
+                        ? 'Sudah diukur sesi ini'
+                        : 'Belum diukur sesi ini',
+                    color: measuredToday
+                        ? LedgerColors.primary
+                        : LedgerColors.attention,
+                    softColor: measuredToday
+                        ? LedgerColors.primarySoft
+                        : LedgerColors.attentionSoft,
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: onSelect,
+                    icon: const Icon(Icons.straighten_outlined, size: 16),
+                    label: const Text('Ukur'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: LedgerColors.inkMuted,
+                size: 22,
+              ),
+            ],
           ),
         ),
       ),
-      onTap: onSelect,
+    );
+  }
+}
+
+class _ChildContextStrip extends StatelessWidget {
+  const _ChildContextStrip({
+    required this.ageText,
+    required this.latestMeasurement,
+  });
+
+  final String ageText;
+  final String latestMeasurement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniInfoTile(
+            label: 'Usia',
+            value: ageText.replaceFirst('Usia ', ''),
+            icon: Icons.cake_outlined,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MiniInfoTile(
+            label: 'Pengukuran terakhir',
+            value: latestMeasurement.replaceFirst('Terakhir: ', ''),
+            icon: Icons.monitor_weight_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniInfoTile extends StatelessWidget {
+  const _MiniInfoTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: LedgerColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: LedgerColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: LedgerColors.primary),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: LedgerColors.inkSoft,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
     );
   }
 }

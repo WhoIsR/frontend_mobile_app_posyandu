@@ -11,6 +11,9 @@ class BalitaModel extends Balita {
     required super.namaIbu,
     super.tanggalLahir,
     super.jenisKelamin,
+    super.latestWeight,
+    super.latestHeight,
+    super.latestMeasuredAt,
   });
 
   factory BalitaModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +23,9 @@ class BalitaModel extends Balita {
       namaIbu: json['nama_ibu']?.toString() ?? '-',
       tanggalLahir: json['tanggal_lahir']?.toString(),
       jenisKelamin: json['jenis_kelamin']?.toString(),
+      latestWeight: _asDouble(json['latest_weight']),
+      latestHeight: _asDouble(json['latest_height']),
+      latestMeasuredAt: json['latest_measured_at']?.toString(),
     );
   }
 }
@@ -112,4 +118,10 @@ List<Map<String, dynamic>> paginatedRows(Map<String, dynamic> json) {
 int _asInt(Object? value) {
   if (value is int) return value;
   return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double? _asDouble(Object? value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }

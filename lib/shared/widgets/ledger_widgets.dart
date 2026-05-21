@@ -322,7 +322,7 @@ class LedgerListRow extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
@@ -341,7 +341,10 @@ class LedgerListRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(flex: 0, child: trailing),
+              Flexible(
+                flex: 0,
+                child: Align(alignment: Alignment.center, child: trailing),
+              ),
               if (onTap != null) ...[
                 const SizedBox(width: 6),
                 const Icon(
