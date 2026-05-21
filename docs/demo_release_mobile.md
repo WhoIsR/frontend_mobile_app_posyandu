@@ -23,6 +23,18 @@ Untuk device fisik di jaringan lokal, ganti base URL:
 flutter build apk --debug --dart-define=API_BASE_URL=http://<IP-LARAVEL>:8000/api
 ```
 
+Untuk VPS sementara via IP:
+
+```powershell
+flutter build apk --debug --dart-define=API_BASE_URL=http://167.172.71.213/api
+```
+
+Untuk rilis yang lebih aman, gunakan domain dan HTTPS:
+
+```powershell
+flutter build apk --debug --dart-define=API_BASE_URL=https://<domain>/api
+```
+
 ## Install ke Emulator Pixel 6
 
 ```powershell
