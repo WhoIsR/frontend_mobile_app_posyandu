@@ -10,9 +10,15 @@ import '../../domain/entities/admin_schedule.dart';
 import '../controllers/admin_dashboard_controller.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
-  const AdminDashboardPage({super.key, this.focus, this.onNavigate});
+  const AdminDashboardPage({
+    super.key,
+    this.focus,
+    this.selectedPosyanduId,
+    this.onNavigate,
+  });
 
   final String? focus;
+  final int? selectedPosyanduId;
   final ValueChanged<String>? onNavigate;
 
   @override
@@ -92,7 +98,7 @@ class AdminDashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             FilledButton.icon(
-              onPressed: () => _openAccountForm(context, ref),
+              onPressed: () => _openAccountForm(context, ref, state),
               icon: const Icon(Icons.person_add_alt_1_outlined),
               label: const Text('Tambah akun kerja'),
             ),
@@ -116,7 +122,7 @@ class AdminDashboardPage extends ConsumerWidget {
         title: activeSession == null ? 'Jadwal & sesi' : 'Sesi sedang aktif',
         subtitle: activeSession == null
             ? '${state.schedules.length} jadwal tercatat. Mulai sesi dari sini.'
-            : 'Posyandu ${activeSession.posyanduId} | ${activeSession.date}',
+            : '${_posyanduName(state, activeSession.posyanduId)} | ${activeSession.date}',
         trailing: const Icon(Icons.arrow_forward),
         onTap: () => onNavigate?.call('sesi'),
       ),
@@ -136,30 +142,53 @@ class AdminDashboardPage extends ConsumerWidget {
     WidgetRef ref,
     AdminDashboardState state,
   ) {
+    final filteredAccounts = selectedPosyanduId == null
+        ? state.accounts
+        : state.accounts
+              .where((row) => row.posyanduId == selectedPosyanduId)
+              .toList();
+    final filterName = selectedPosyanduId == null
+        ? null
+        : _posyanduName(state, selectedPosyanduId!);
     return [
       PageHeader(
         title: 'Akun',
-        subtitle:
-            'Admin hanya mengelola akun Kader dan Bidan untuk kebutuhan operasional.',
+        subtitle: filterName == null
+            ? 'Admin hanya mengelola akun Kader dan Bidan untuk kebutuhan operasional.'
+            : 'Akun Kader dan Bidan yang terhubung ke $filterName.',
         icon: Icons.people_outline,
         action: FilledButton.icon(
-          onPressed: () => _openAccountForm(context, ref),
+          onPressed: () => _openAccountForm(context, ref, state),
           icon: const Icon(Icons.person_add_alt_1_outlined),
           label: const Text('Tambah Akun'),
         ),
       ),
       const SizedBox(height: 12),
-      if (state.accounts.isEmpty)
-        const EmptyState(text: 'Belum ada akun.')
+      if (filterName != null) ...[
+        InlineMessage(
+          text:
+              'Filter aktif: $filterName. Data di bawah hanya untuk Posyandu ini.',
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (filteredAccounts.isEmpty)
+        EmptyState(
+          text: filterName == null
+              ? 'Belum ada akun.'
+              : 'Belum ada akun yang terhubung ke $filterName.',
+        )
       else ...[
         if (state.message != null) ...[
           InlineMessage(text: state.message!, isError: state.isError),
           const SizedBox(height: 12),
         ],
-        ...state.accounts.map(
+        ...filteredAccounts.map(
           (row) => _AdminAccountCard(
             account: row,
-            onTap: () => _openAccountActions(context, ref, row),
+            posyanduName: row.posyanduId == null
+                ? 'Semua Posyandu'
+                : _posyanduName(state, row.posyanduId!),
+            onTap: () => _openAccountActions(context, ref, state, row),
           ),
         ),
       ],
@@ -198,8 +227,8 @@ class AdminDashboardPage extends ConsumerWidget {
             isActive:
                 state.activeSession != null &&
                 state.activeSession!.posyanduId == row.id,
-            onOpenAccounts: () => onNavigate?.call('akun'),
-            onOpenSessions: () => onNavigate?.call('sesi'),
+            onOpenAccounts: () => onNavigate?.call('akun:${row.id}'),
+            onOpenSessions: () => onNavigate?.call('sesi:${row.id}'),
             onEdit: () => _openPosyanduForm(context, ref, row),
           ),
         ),
@@ -227,11 +256,23 @@ class AdminDashboardPage extends ConsumerWidget {
     AdminDashboardState state,
   ) {
     final active = state.activeSession;
+    final filteredSchedules = selectedPosyanduId == null
+        ? state.schedules
+        : state.schedules
+              .where((row) => row.posyanduId == selectedPosyanduId)
+              .toList();
+    final filterName = selectedPosyanduId == null
+        ? null
+        : _posyanduName(state, selectedPosyanduId!);
+    final activeForFilter =
+        active != null &&
+        (selectedPosyanduId == null || active.posyanduId == selectedPosyanduId);
     return [
       PageHeader(
         title: 'Jadwal & sesi',
-        subtitle:
-            'Di sini Admin/Bidan menyiapkan jadwal Posyandu dan membuka sesi aktif yang dipakai Kader untuk input BB/TB.',
+        subtitle: filterName == null
+            ? 'Di sini Admin/Bidan menyiapkan jadwal Posyandu dan membuka sesi aktif yang dipakai Kader untuk input BB/TB.'
+            : 'Jadwal dan sesi khusus $filterName.',
         icon: Icons.event_available_outlined,
         action: FilledButton.icon(
           onPressed: state.posyandu.isEmpty
@@ -242,11 +283,21 @@ class AdminDashboardPage extends ConsumerWidget {
         ),
       ),
       const SizedBox(height: 12),
-      if (active == null)
+      if (filterName != null) ...[
+        InlineMessage(
+          text:
+              'Filter aktif: $filterName. Jadwal di bawah hanya untuk Posyandu ini.',
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (!activeForFilter)
         LedgerPanel(
-          title: 'Belum ada sesi aktif',
-          subtitle:
-              'Kader baru bisa input pengukuran setelah sesi Posyandu dibuka.',
+          title: filterName == null
+              ? 'Belum ada sesi aktif'
+              : 'Belum ada sesi aktif untuk $filterName',
+          subtitle: filterName == null
+              ? 'Kader baru bisa input pengukuran setelah sesi Posyandu dibuka.'
+              : 'Kader $filterName baru bisa input setelah sesi wilayah ini dibuka.',
           accent: LedgerColors.attention,
           child: const Text(
             'Pilih jadwal di bawah lalu tekan Mulai Sesi.',
@@ -270,10 +321,14 @@ class AdminDashboardPage extends ConsumerWidget {
           ),
         ),
       const SectionTitle('Jadwal Posyandu'),
-      if (state.schedules.isEmpty)
-        const EmptyState(text: 'Belum ada jadwal. Buat jadwal pertama dulu.')
+      if (filteredSchedules.isEmpty)
+        EmptyState(
+          text: filterName == null
+              ? 'Belum ada jadwal. Buat jadwal pertama dulu.'
+              : 'Belum ada jadwal untuk $filterName.',
+        )
       else
-        ...state.schedules.map(
+        ...filteredSchedules.map(
           (schedule) => _AdminScheduleCard(
             schedule: schedule,
             posyanduName: _posyanduName(state, schedule.posyanduId),
@@ -370,6 +425,7 @@ class AdminDashboardPage extends ConsumerWidget {
   Future<void> _openAccountActions(
     BuildContext context,
     WidgetRef ref,
+    AdminDashboardState state,
     AdminAccount account,
   ) {
     final nextStatus = account.status == 'aktif' ? 'nonaktif' : 'aktif';
@@ -396,14 +452,19 @@ class AdminDashboardPage extends ConsumerWidget {
                     style: const TextStyle(color: LedgerColors.inkSoft),
                   ),
                   const SizedBox(height: 12),
-                  _AccountActionSummary(account: account),
+                  _AccountActionSummary(
+                    account: account,
+                    posyanduName: account.posyanduId == null
+                        ? 'Semua Posyandu'
+                        : _posyanduName(state, account.posyanduId!),
+                  ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: () {
                         Navigator.of(sheetContext).pop();
-                        _openAccountForm(context, ref, account);
+                        _openAccountForm(context, ref, state, account);
                       },
                       icon: const Icon(Icons.edit_outlined),
                       label: const Text('Edit akun'),
@@ -521,7 +582,8 @@ class AdminDashboardPage extends ConsumerWidget {
 
   Future<void> _openAccountForm(
     BuildContext context,
-    WidgetRef ref, [
+    WidgetRef ref,
+    AdminDashboardState state, [
     AdminAccount? account,
   ]) {
     final name = TextEditingController(text: account?.name ?? '');
@@ -529,6 +591,10 @@ class AdminDashboardPage extends ConsumerWidget {
     final password = TextEditingController();
     var role = account?.role == 'bidan' ? 'bidan' : 'kader';
     var status = account?.status == 'nonaktif' ? 'nonaktif' : 'aktif';
+    int? posyanduId =
+        account?.posyanduId ??
+        selectedPosyanduId ??
+        (state.posyandu.isEmpty ? null : state.posyandu.first.id);
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -584,6 +650,24 @@ class AdminDashboardPage extends ConsumerWidget {
                   onChanged: (value) => setState(() => role = value ?? 'kader'),
                 ),
                 const SizedBox(height: 10),
+                DropdownButtonFormField<int?>(
+                  initialValue: posyanduId,
+                  decoration: const InputDecoration(labelText: 'Posyandu'),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Semua Posyandu'),
+                    ),
+                    ...state.posyandu.map(
+                      (row) => DropdownMenuItem<int?>(
+                        value: row.id,
+                        child: Text(row.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() => posyanduId = value),
+                ),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   initialValue: status,
                   decoration: const InputDecoration(labelText: 'Status'),
@@ -609,7 +693,7 @@ class AdminDashboardPage extends ConsumerWidget {
                           nikNip: nik.text.trim(),
                           password: password.text.trim(),
                           role: role,
-                          posyanduId: account?.posyanduId,
+                          posyanduId: posyanduId,
                           status: status,
                         );
                     if (sheetContext.mounted) Navigator.of(sheetContext).pop();
@@ -724,7 +808,8 @@ class AdminDashboardPage extends ConsumerWidget {
       text: schedule?.location ?? state.posyandu.first.address ?? '',
     );
     final note = TextEditingController(text: schedule?.note ?? '');
-    var posyanduId = schedule?.posyanduId ?? state.posyandu.first.id;
+    var posyanduId =
+        schedule?.posyanduId ?? selectedPosyanduId ?? state.posyandu.first.id;
 
     return showModalBottomSheet<void>(
       context: context,
@@ -849,9 +934,14 @@ class AdminDashboardPage extends ConsumerWidget {
 }
 
 class _AdminAccountCard extends StatelessWidget {
-  const _AdminAccountCard({required this.account, required this.onTap});
+  const _AdminAccountCard({
+    required this.account,
+    required this.posyanduName,
+    required this.onTap,
+  });
 
   final AdminAccount account;
+  final String posyanduName;
   final VoidCallback onTap;
 
   @override
@@ -917,9 +1007,7 @@ class _AdminAccountCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      account.posyanduId == null
-                          ? 'Semua Posyandu'
-                          : 'Posyandu ${account.posyanduId}',
+                      posyanduName,
                       style: const TextStyle(
                         color: LedgerColors.inkSoft,
                         fontSize: 12,
@@ -950,9 +1038,13 @@ class _AdminAccountCard extends StatelessWidget {
 }
 
 class _AccountActionSummary extends StatelessWidget {
-  const _AccountActionSummary({required this.account});
+  const _AccountActionSummary({
+    required this.account,
+    required this.posyanduName,
+  });
 
   final AdminAccount account;
+  final String posyanduName;
 
   @override
   Widget build(BuildContext context) {
@@ -980,7 +1072,7 @@ class _AccountActionSummary extends StatelessWidget {
           Text(
             account.posyanduId == null
                 ? 'Akses semua Posyandu'
-                : 'Terhubung ke Posyandu ${account.posyanduId}',
+                : 'Terhubung ke $posyanduName',
             style: const TextStyle(color: LedgerColors.inkSoft),
           ),
         ],

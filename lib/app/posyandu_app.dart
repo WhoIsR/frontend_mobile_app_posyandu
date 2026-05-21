@@ -49,6 +49,7 @@ class RoleShell extends ConsumerStatefulWidget {
 
 class _RoleShellState extends ConsumerState<RoleShell> {
   int _index = 0;
+  int? _adminPosyanduFilterId;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +73,12 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) => setState(() {
+          _index = value;
+          if (widget.user.role == UserRole.admin) {
+            _adminPosyanduFilterId = null;
+          }
+        }),
         destinations: shell.destinations,
       ),
       body: SafeArea(child: pages[_index]),
@@ -86,9 +92,17 @@ class _RoleShellState extends ConsumerState<RoleShell> {
         destinations: _adminDestinations,
         pages: [
           AdminDashboardPage(onNavigate: _navigateAdmin),
-          AdminDashboardPage(focus: 'akun', onNavigate: _navigateAdmin),
+          AdminDashboardPage(
+            focus: 'akun',
+            selectedPosyanduId: _adminPosyanduFilterId,
+            onNavigate: _navigateAdmin,
+          ),
           AdminDashboardPage(focus: 'posyandu', onNavigate: _navigateAdmin),
-          AdminDashboardPage(focus: 'sesi', onNavigate: _navigateAdmin),
+          AdminDashboardPage(
+            focus: 'sesi',
+            selectedPosyanduId: _adminPosyanduFilterId,
+            onNavigate: _navigateAdmin,
+          ),
           AdminDashboardPage(focus: 'laporan', onNavigate: _navigateAdmin),
         ],
       ),
@@ -140,14 +154,20 @@ class _RoleShellState extends ConsumerState<RoleShell> {
   }
 
   void _navigateAdmin(String focus) {
-    final next = switch (focus) {
+    final parts = focus.split(':');
+    final target = parts.first;
+    final filter = parts.length > 1 ? int.tryParse(parts[1]) : null;
+    final next = switch (target) {
       'akun' => 1,
       'posyandu' => 2,
       'sesi' => 3,
       'laporan' => 4,
       _ => 0,
     };
-    setState(() => _index = next);
+    setState(() {
+      _index = next;
+      _adminPosyanduFilterId = filter;
+    });
   }
 }
 

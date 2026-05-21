@@ -391,7 +391,7 @@ void main() {
 
     await tester.tap(find.text('Posyandu').last);
     await tester.pumpAndSettle();
-    expect(find.text('Posyandu Melati 03'), findsOneWidget);
+    expect(find.text('Posyandu Melati 03'), findsWidgets);
   });
 
   testWidgets('Admin Posyandu menampilkan relasi dan sesi bisa diatur', (
@@ -410,6 +410,27 @@ void main() {
     expect(find.text('1 kader'), findsOneWidget);
     expect(find.text('1 jadwal'), findsOneWidget);
     expect(find.text('Jadwal/Sesi'), findsOneWidget);
+
+    await tester.tap(find.text('Akun terkait'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Filter aktif: Posyandu Melati 03. Data di bawah hanya untuk Posyandu ini.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Kader Rini'), findsOneWidget);
+
+    await tester.tap(find.text('Posyandu').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jadwal/Sesi'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Filter aktif: Posyandu Melati 03. Jadwal di bawah hanya untuk Posyandu ini.',
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Sesi').last);
     await tester.pumpAndSettle();
@@ -443,6 +464,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tambah Akun'));
     await tester.pumpAndSettle();
+    expect(find.text('Posyandu Melati 03'), findsWidgets);
     await tester.enterText(
       find.byKey(const Key('adminAccountNameField')),
       'Kader Baru',
@@ -459,6 +481,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(admin.createdAccountName, 'Kader Baru');
+    expect(admin.createdAccountPosyanduId, 1);
     expect(find.text('Akun tersimpan.'), findsOneWidget);
 
     await tester.tap(find.text('Kader Baru'));
@@ -488,7 +511,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Bidan Sari'), findsOneWidget);
     expect(find.text('NIP/NIK 1976010101010001'), findsOneWidget);
-    expect(find.text('Posyandu 1'), findsWidgets);
+    expect(find.text('Posyandu Melati 03'), findsWidgets);
     expect(find.text('Kader Cuti'), findsOneWidget);
     expect(find.text('nonaktif'), findsWidgets);
   });
@@ -976,6 +999,7 @@ class FakeBidanRepository implements BidanRepository {
 class FakeAdminRepository implements AdminRepository {
   final List<String> downloadedReports = [];
   String? createdAccountName;
+  int? createdAccountPosyanduId;
   String? updatedAccountStatus;
   AdminAccount? createdAccount;
   int? startedScheduleId;
@@ -1068,6 +1092,7 @@ class FakeAdminRepository implements AdminRepository {
   }) async {
     if (id == null) {
       createdAccountName = name;
+      createdAccountPosyanduId = posyanduId;
     } else {
       updatedAccountStatus = status;
     }
