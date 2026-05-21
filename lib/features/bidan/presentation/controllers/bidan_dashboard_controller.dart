@@ -123,6 +123,38 @@ class BidanDashboardController extends Notifier<BidanDashboardState> {
     }
   }
 
+  Future<void> validateReferral({
+    required int referralId,
+    required int childId,
+    required String decision,
+    required String note,
+  }) async {
+    state = state.copyWith(isSavingValidation: true, clearMessage: true);
+    try {
+      final validation = await ref.read(validateReferralProvider)(
+        referralId: referralId,
+        decision: decision,
+        note: note.trim().isEmpty ? 'Observasi dan pantau ulang.' : note.trim(),
+      );
+      if (validation.decision == 'pmt') {
+        _lastPmtValidationId = validation.id;
+        _lastPmtChildId = childId;
+      }
+      final data = await ref.read(getBidanDashboardProvider)();
+      state = BidanDashboardState(
+        data: data,
+        isLoading: false,
+        message: 'Validasi tersimpan',
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSavingValidation: false,
+        message: _errorText(error),
+        isError: true,
+      );
+    }
+  }
+
   Future<void> distributeFirstPmt() async {
     final pmtStock = state.data?.pmtStock ?? const [];
     final validationId = _lastPmtValidationId;

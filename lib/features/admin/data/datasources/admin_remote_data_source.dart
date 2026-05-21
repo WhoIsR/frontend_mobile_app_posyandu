@@ -24,6 +24,49 @@ class AdminRemoteDataSource {
     return adminRows(json).map(AdminPosyanduModel.fromJson).toList();
   }
 
+  Future<AdminAccountModel> saveAccount({
+    int? id,
+    required String name,
+    required String nikNip,
+    String? password,
+    required String role,
+    int? posyanduId,
+    required String status,
+  }) async {
+    final body = {
+      'nama': name,
+      'nik_nip': nikNip,
+      if (password?.isNotEmpty ?? false) 'password': password,
+      'role': role,
+      'posyandu_id': posyanduId,
+      'status': status,
+    };
+    final json = id == null
+        ? await _apiClient.postJson('/admin/users', body: body)
+        : await _apiClient.putJson('/admin/users/$id', body: body);
+    return AdminAccountModel.fromJson(json);
+  }
+
+  Future<AdminPosyanduModel> savePosyandu({
+    int? id,
+    required String name,
+    required String address,
+    required String village,
+    required String district,
+  }) async {
+    final body = {
+      'nama_posyandu': name,
+      'alamat': address,
+      'desa': village,
+      'kecamatan': district,
+      'bidan_id': null,
+    };
+    final json = id == null
+        ? await _apiClient.postJson('/admin/posyandu', body: body)
+        : await _apiClient.putJson('/admin/posyandu/$id', body: body);
+    return AdminPosyanduModel.fromJson(json);
+  }
+
   Future<Uint8List> downloadReport(
     String type, {
     String? startDate,

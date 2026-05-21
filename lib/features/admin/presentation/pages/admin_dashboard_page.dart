@@ -4,6 +4,8 @@ import 'package:printing/printing.dart';
 
 import '../../../../app/ledger_theme.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
+import '../../domain/entities/admin_account.dart';
+import '../../domain/entities/admin_posyandu.dart';
 import '../controllers/admin_dashboard_controller.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
@@ -17,8 +19,8 @@ class AdminDashboardPage extends ConsumerWidget {
     final state = ref.watch(adminDashboardControllerProvider);
     if (state.isLoading) return const LoadingPanel();
     final sections = switch (focus) {
-      'akun' => _accounts(context, state),
-      'posyandu' => _posyandu(context, state),
+      'akun' => _accounts(context, ref, state),
+      'posyandu' => _posyandu(context, ref, state),
       'laporan' => _reports(context, ref, state),
       _ => _home(context, state),
     };
@@ -86,13 +88,22 @@ class AdminDashboardPage extends ConsumerWidget {
     ];
   }
 
-  List<Widget> _accounts(BuildContext context, AdminDashboardState state) {
+  List<Widget> _accounts(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
     return [
-      const PageHeader(
+      PageHeader(
         title: 'Akun',
         subtitle:
             'Admin hanya mengelola akun Kader dan Bidan untuk kebutuhan operasional.',
         icon: Icons.people_outline,
+        action: FilledButton.icon(
+          onPressed: () => _openAccountForm(context, ref),
+          icon: const Icon(Icons.person_add_alt_1_outlined),
+          label: const Text('Tambah Akun'),
+        ),
       ),
       const SizedBox(height: 12),
       if (state.accounts.isEmpty)
@@ -111,18 +122,32 @@ class AdminDashboardPage extends ConsumerWidget {
                   ? LedgerColors.primarySoft
                   : LedgerColors.line,
             ),
+            onTap: () => _openAccountActions(context, ref, row),
           ),
         ),
+      if (state.message != null) ...[
+        const SizedBox(height: 12),
+        InlineMessage(text: state.message!, isError: state.isError),
+      ],
     ];
   }
 
-  List<Widget> _posyandu(BuildContext context, AdminDashboardState state) {
+  List<Widget> _posyandu(
+    BuildContext context,
+    WidgetRef ref,
+    AdminDashboardState state,
+  ) {
     return [
-      const PageHeader(
+      PageHeader(
         title: 'Posyandu',
         subtitle:
             'Data wilayah kerja dasar untuk menghubungkan Bidan, Kader, dan balita.',
         icon: Icons.home_work_outlined,
+        action: FilledButton.icon(
+          onPressed: () => _openPosyanduForm(context, ref),
+          icon: const Icon(Icons.add_home_work_outlined),
+          label: const Text('Tambah'),
+        ),
       ),
       const SizedBox(height: 12),
       if (state.posyandu.isEmpty)
@@ -136,8 +161,13 @@ class AdminDashboardPage extends ConsumerWidget {
               if (row.district?.isNotEmpty ?? false) row.district,
             ].whereType<String>().join(' | '),
             trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openPosyanduForm(context, ref, row),
           ),
         ),
+      if (state.message != null) ...[
+        const SizedBox(height: 12),
+        InlineMessage(text: state.message!, isError: state.isError),
+      ],
     ];
   }
 
@@ -206,6 +236,247 @@ class AdminDashboardPage extends ConsumerWidget {
       if (state.message != null)
         InlineMessage(text: state.message!, isError: state.isError),
     ];
+  }
+
+  Future<void> _openAccountActions(
+    BuildContext context,
+    WidgetRef ref,
+    AdminAccount account,
+  ) {
+    final nextStatus = account.status == 'aktif' ? 'nonaktif' : 'aktif';
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Aksi akun', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 4),
+              Text(
+                account.name,
+                style: const TextStyle(color: LedgerColors.inkSoft),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _openAccountForm(context, ref, account);
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Edit akun'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await ref
+                      .read(adminDashboardControllerProvider.notifier)
+                      .saveAccount(
+                        id: account.id,
+                        name: account.name,
+                        nikNip: account.nikNip,
+                        role: account.role,
+                        posyanduId: account.posyanduId,
+                        status: nextStatus,
+                      );
+                },
+                icon: Icon(
+                  nextStatus == 'nonaktif'
+                      ? Icons.block
+                      : Icons.check_circle_outline,
+                ),
+                label: Text(
+                  nextStatus == 'nonaktif' ? 'Nonaktifkan' : 'Aktifkan',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAccountForm(
+    BuildContext context,
+    WidgetRef ref, [
+    AdminAccount? account,
+  ]) {
+    final name = TextEditingController(text: account?.name ?? '');
+    final nik = TextEditingController(text: account?.nikNip ?? '');
+    final password = TextEditingController();
+    var role = account?.role == 'bidan' ? 'bidan' : 'kader';
+    var status = account?.status == 'nonaktif' ? 'nonaktif' : 'aktif';
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Text(
+                account == null ? 'Tambah Akun' : 'Edit akun',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('adminAccountNameField'),
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Nama'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const Key('adminAccountNikField'),
+                controller: nik,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'NIK / NIP'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const Key('adminAccountPasswordField'),
+                controller: password,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: account == null
+                      ? 'Password'
+                      : 'Password baru (opsional)',
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: role,
+                decoration: const InputDecoration(labelText: 'Role'),
+                items: const [
+                  DropdownMenuItem(value: 'kader', child: Text('Kader')),
+                  DropdownMenuItem(value: 'bidan', child: Text('Bidan')),
+                ],
+                onChanged: (value) => setState(() => role = value ?? 'kader'),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                initialValue: status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: const [
+                  DropdownMenuItem(value: 'aktif', child: Text('Aktif')),
+                  DropdownMenuItem(value: 'nonaktif', child: Text('Nonaktif')),
+                ],
+                onChanged: (value) => setState(() => status = value ?? 'aktif'),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const Key('saveAdminAccountButton'),
+                onPressed: () async {
+                  await ref
+                      .read(adminDashboardControllerProvider.notifier)
+                      .saveAccount(
+                        id: account?.id,
+                        name: name.text.trim(),
+                        nikNip: nik.text.trim(),
+                        password: password.text.trim(),
+                        role: role,
+                        posyanduId: account?.posyanduId,
+                        status: status,
+                      );
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                },
+                child: const Text('Simpan Akun'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        name.dispose();
+        nik.dispose();
+        password.dispose();
+      });
+    });
+  }
+
+  Future<void> _openPosyanduForm(
+    BuildContext context,
+    WidgetRef ref, [
+    AdminPosyandu? posyandu,
+  ]) {
+    final name = TextEditingController(text: posyandu?.name ?? '');
+    final address = TextEditingController(text: posyandu?.address ?? '');
+    final village = TextEditingController(text: posyandu?.village ?? '');
+    final district = TextEditingController(text: posyandu?.district ?? '');
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Text(
+              posyandu == null ? 'Tambah Posyandu' : 'Edit Posyandu',
+              style: Theme.of(sheetContext).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(labelText: 'Nama Posyandu'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: address,
+              decoration: const InputDecoration(labelText: 'Alamat'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: village,
+              decoration: const InputDecoration(labelText: 'Desa'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: district,
+              decoration: const InputDecoration(labelText: 'Kecamatan'),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () async {
+                await ref
+                    .read(adminDashboardControllerProvider.notifier)
+                    .savePosyandu(
+                      id: posyandu?.id,
+                      name: name.text.trim(),
+                      address: address.text.trim(),
+                      village: village.text.trim(),
+                      district: district.text.trim(),
+                    );
+                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+              },
+              child: const Text('Simpan Posyandu'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(() {
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        name.dispose();
+        address.dispose();
+        village.dispose();
+        district.dispose();
+      });
+    });
   }
 }
 

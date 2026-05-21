@@ -212,12 +212,8 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         ...data!.children
             .take(10)
             .map(
-              (row) => _ChildRow(
-                child: row,
-                onSelect: () => ref
-                    .read(kaderDashboardControllerProvider.notifier)
-                    .selectChild(row),
-              ),
+              (row) =>
+                  _ChildRow(child: row, onSelect: () => _openChildActions(row)),
             ),
       if (state.message != null) ...[
         const SizedBox(height: 12),
@@ -352,6 +348,128 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         .saveMeasurement(weight: weight, height: height);
   }
 
+  Future<void> _saveQuickMeasurement(
+    BuildContext sheetContext,
+    TextEditingController weightController,
+    TextEditingController heightController,
+  ) async {
+    final weight = double.tryParse(weightController.text.replaceAll(',', '.'));
+    final height = double.tryParse(heightController.text.replaceAll(',', '.'));
+    if (weight == null || height == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Isi BB dan TB dengan angka.')),
+      );
+      return;
+    }
+    await ref
+        .read(kaderDashboardControllerProvider.notifier)
+        .saveMeasurement(weight: weight, height: height);
+    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+  }
+
+  Future<void> _openChildActions(Balita child) async {
+    ref.read(kaderDashboardControllerProvider.notifier).selectChild(child);
+    final quickWeight = TextEditingController();
+    final quickHeight = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Text(
+              'Aksi balita',
+              style: Theme.of(sheetContext).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${child.namaBalita} | Ibu: ${child.namaIbu}',
+              style: const TextStyle(color: LedgerColors.inkSoft),
+            ),
+            const SizedBox(height: 16),
+            LedgerPanel(
+              title: 'Input BB/TB',
+              subtitle:
+                  'Catat pengukuran dari sesi berjalan tanpa pindah halaman.',
+              accent: LedgerColors.primary,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          key: const Key('quickWeightField'),
+                          controller: quickWeight,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'BB',
+                            suffixText: 'kg',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          key: const Key('quickHeightField'),
+                          controller: quickHeight,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'TB',
+                            suffixText: 'cm',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const Key('quickSaveMeasurementButton'),
+                    onPressed: () => _saveQuickMeasurement(
+                      sheetContext,
+                      quickWeight,
+                      quickHeight,
+                    ),
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('Simpan & Lanjut'),
+                  ),
+                ],
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                widget.onNavigate?.call('skrining');
+              },
+              icon: const Icon(Icons.fact_check_outlined),
+              label: const Text('Lihat skrining'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Edit data'),
+            ),
+          ],
+        ),
+      ),
+    );
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      quickWeight.dispose();
+      quickHeight.dispose();
+    });
+  }
+
   Future<void> _openNotification(
     BuildContext context,
     AppNotification notification,
@@ -398,6 +516,7 @@ class _ChildRow extends StatelessWidget {
           ),
         ),
       ),
+      onTap: onSelect,
     );
   }
 }

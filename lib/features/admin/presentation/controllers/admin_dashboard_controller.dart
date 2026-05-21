@@ -14,6 +14,7 @@ class AdminDashboardState {
     this.isLoading = true,
     this.message,
     this.isError = false,
+    this.isSaving = false,
     this.reportBytes,
     this.reportType,
     this.reportStartDate,
@@ -25,6 +26,7 @@ class AdminDashboardState {
   final bool isLoading;
   final String? message;
   final bool isError;
+  final bool isSaving;
   final Uint8List? reportBytes;
   final String? reportType;
   final String? reportStartDate;
@@ -37,6 +39,7 @@ class AdminDashboardState {
     String? message,
     bool clearMessage = false,
     bool? isError,
+    bool? isSaving,
     Uint8List? reportBytes,
     String? reportType,
     bool clearReport = false,
@@ -49,6 +52,7 @@ class AdminDashboardState {
       isLoading: isLoading ?? this.isLoading,
       message: clearMessage ? null : message ?? this.message,
       isError: isError ?? this.isError,
+      isSaving: isSaving ?? this.isSaving,
       reportBytes: clearReport ? null : reportBytes ?? this.reportBytes,
       reportType: clearReport ? null : reportType ?? this.reportType,
       reportStartDate: reportStartDate ?? this.reportStartDate,
@@ -107,6 +111,84 @@ class AdminDashboardController extends Notifier<AdminDashboardState> {
             : 'Laporan belum bisa diunduh.',
         isError: true,
       );
+    }
+  }
+
+  Future<void> saveAccount({
+    int? id,
+    required String name,
+    required String nikNip,
+    String? password,
+    required String role,
+    int? posyanduId,
+    required String status,
+  }) async {
+    state = state.copyWith(isSaving: true, clearMessage: true);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .saveAccount(
+            id: id,
+            name: name,
+            nikNip: nikNip,
+            password: password,
+            role: role,
+            posyanduId: posyanduId,
+            status: status,
+          );
+      final repository = ref.read(adminRepositoryProvider);
+      state = state.copyWith(
+        accounts: await repository.accounts(),
+        isSaving: false,
+        message: id == null ? 'Akun tersimpan.' : 'Status akun diperbarui.',
+        isError: false,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        message: error is ApiException
+            ? error.message
+            : 'Akun belum bisa disimpan.',
+        isError: true,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> savePosyandu({
+    int? id,
+    required String name,
+    required String address,
+    required String village,
+    required String district,
+  }) async {
+    state = state.copyWith(isSaving: true, clearMessage: true);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .savePosyandu(
+            id: id,
+            name: name,
+            address: address,
+            village: village,
+            district: district,
+          );
+      final repository = ref.read(adminRepositoryProvider);
+      state = state.copyWith(
+        posyandu: await repository.posyandu(),
+        isSaving: false,
+        message: 'Posyandu tersimpan.',
+        isError: false,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        message: error is ApiException
+            ? error.message
+            : 'Posyandu belum bisa disimpan.',
+        isError: true,
+      );
+      rethrow;
     }
   }
 

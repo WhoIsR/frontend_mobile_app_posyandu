@@ -390,6 +390,98 @@ void main() {
     expect(find.text('Posyandu Melati 03'), findsOneWidget);
   });
 
+  testWidgets('Admin bisa tambah dan nonaktifkan akun dari action sheet', (
+    tester,
+  ) async {
+    final admin = FakeAdminRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.admin), admin: admin),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '199001012020011001');
+
+    await tester.tap(find.text('Akun').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tambah Akun'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('adminAccountNameField')),
+      'Kader Baru',
+    );
+    await tester.enterText(
+      find.byKey(const Key('adminAccountNikField')),
+      '3276010101010099',
+    );
+    await tester.enterText(
+      find.byKey(const Key('adminAccountPasswordField')),
+      'password',
+    );
+    await tester.tap(find.byKey(const Key('saveAdminAccountButton')));
+    await tester.pumpAndSettle();
+
+    expect(admin.createdAccountName, 'Kader Baru');
+    expect(find.text('Akun tersimpan.'), findsOneWidget);
+
+    await tester.tap(find.text('Kader Baru'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nonaktifkan'));
+    await tester.pumpAndSettle();
+
+    expect(admin.updatedAccountStatus, 'nonaktif');
+    expect(find.text('Status akun diperbarui.'), findsOneWidget);
+  });
+
+  testWidgets('Kader tap balita membuka aksi cepat dan bisa input BB TB', (
+    tester,
+  ) async {
+    final kader = FakeKaderRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Raka Pratama'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aksi balita'), findsOneWidget);
+
+    await tester.tap(find.text('Input BB/TB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('quickWeightField')), '10.2');
+    await tester.enterText(find.byKey(const Key('quickHeightField')), '84.5');
+    await tester.tap(find.byKey(const Key('quickSaveMeasurementButton')));
+    await tester.pumpAndSettle();
+
+    expect(kader.savedWeight, 10.2);
+    expect(kader.savedHeight, 84.5);
+    expect(find.textContaining('Hasil skrining diperbarui'), findsWidgets);
+  });
+
+  testWidgets('Bidan tap rujukan membuka detail dan validasi kontekstual', (
+    tester,
+  ) async {
+    final bidan = FakeBidanRepository();
+    await tester.pumpWidget(
+      _app(auth: FakeAuthRepository.loginAs(UserRole.bidan), bidan: bidan),
+    );
+    await tester.pumpAndSettle();
+    await _submitLogin(tester, nik: '1976010101010001');
+    await tester.tap(find.text('Rujukan').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Raka Pratama').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Detail rujukan'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('validateReferralDetailButton')));
+    await tester.pumpAndSettle();
+
+    expect(bidan.validatedReferralId, 31);
+    expect(find.text('Validasi tersimpan'), findsOneWidget);
+  });
+
   testWidgets('Admin bisa preview laporan PDF', (tester) async {
     final admin = FakeAdminRepository();
     await tester.pumpWidget(
@@ -642,6 +734,7 @@ class FakeKaderRepository implements KaderRepository {
 
 class FakeBidanRepository implements BidanRepository {
   String? validatedDecision;
+  int? validatedReferralId;
   int? distributedPmtId;
   int? distributedQuantity;
   final List<String> downloadedReports = [];
@@ -675,6 +768,7 @@ class FakeBidanRepository implements BidanRepository {
     required String decision,
     required String note,
   }) async {
+    validatedReferralId = referralId;
     validatedDecision = decision;
     return ValidationResult(id: 41, referralId: referralId, decision: decision);
   }
@@ -733,10 +827,13 @@ class FakeBidanRepository implements BidanRepository {
 
 class FakeAdminRepository implements AdminRepository {
   final List<String> downloadedReports = [];
+  String? createdAccountName;
+  String? updatedAccountStatus;
+  AdminAccount? createdAccount;
 
   @override
   Future<List<AdminAccount>> accounts() async {
-    return const [
+    final rows = <AdminAccount>[
       AdminAccount(
         id: 1,
         name: 'Bidan Sari',
@@ -754,6 +851,10 @@ class FakeAdminRepository implements AdminRepository {
         posyanduId: 1,
       ),
     ];
+    if (createdAccount != null) {
+      rows.add(createdAccount!);
+    }
+    return rows;
   }
 
   @override
@@ -777,5 +878,51 @@ class FakeAdminRepository implements AdminRepository {
   }) async {
     downloadedReports.add(type);
     return Uint8List.fromList([4, 5, 6]);
+  }
+
+  @override
+  Future<AdminAccount> saveAccount({
+    int? id,
+    required String name,
+    required String nikNip,
+    String? password,
+    required String role,
+    int? posyanduId,
+    required String status,
+  }) async {
+    if (id == null) {
+      createdAccountName = name;
+    } else {
+      updatedAccountStatus = status;
+    }
+    final account = AdminAccount(
+      id: id ?? 3,
+      name: name,
+      nikNip: nikNip,
+      role: role,
+      status: status,
+      posyanduId: posyanduId,
+    );
+    if (id == null || id == createdAccount?.id) {
+      createdAccount = account;
+    }
+    return account;
+  }
+
+  @override
+  Future<AdminPosyandu> savePosyandu({
+    int? id,
+    required String name,
+    required String address,
+    required String village,
+    required String district,
+  }) async {
+    return AdminPosyandu(
+      id: id ?? 2,
+      name: name,
+      address: address,
+      village: village,
+      district: district,
+    );
   }
 }

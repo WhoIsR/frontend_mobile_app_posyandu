@@ -19,18 +19,32 @@ class LedgerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              width: 4,
+              width: 6,
               decoration: BoxDecoration(
                 color: accent,
                 borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(8),
+                  left: Radius.circular(20),
                 ),
               ),
             ),
@@ -84,40 +98,74 @@ class PageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LedgerColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [LedgerColors.surface, LedgerColors.glow],
+        ),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(alpha: 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SoftIcon(icon: icon),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 330;
+          final titleBlock = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SoftIcon(icon: icon),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          if (action == null) return titleBlock;
+          if (compact) {
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: LedgerColors.inkSoft,
-                    height: 1.35,
-                  ),
-                ),
+                titleBlock,
+                const SizedBox(height: 14),
+                Align(alignment: Alignment.centerLeft, child: action!),
               ],
-            ),
-          ),
-          if (action != null) ...[const SizedBox(width: 8), action!],
-        ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: titleBlock),
+              const SizedBox(width: 12),
+              Flexible(flex: 0, child: action!),
+            ],
+          );
+        },
       ),
     );
   }
@@ -222,7 +270,14 @@ class SoftIcon extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         color: softColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Icon(icon, size: 21, color: color),
     );
@@ -245,13 +300,27 @@ class LedgerListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -273,6 +342,14 @@ class LedgerListRow extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Flexible(flex: 0, child: trailing),
+              if (onTap != null) ...[
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: LedgerColors.inkMuted,
+                  size: 20,
+                ),
+              ],
             ],
           ),
         ),
@@ -316,7 +393,7 @@ class StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: softColor,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,

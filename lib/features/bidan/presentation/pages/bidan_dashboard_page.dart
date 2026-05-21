@@ -135,7 +135,14 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       if (data?.referrals.isEmpty ?? true)
         const EmptyState(text: 'Belum ada rujukan masuk.')
       else
-        ...data!.referrals.take(4).map((row) => _ReferralRow(referral: row)),
+        ...data!.referrals
+            .take(4)
+            .map(
+              (row) => _ReferralRow(
+                referral: row,
+                onTap: () => _openReferralDetail(context, row),
+              ),
+            ),
     ];
   }
 
@@ -383,6 +390,64 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
         .validateFirstReferral(decision: _decision, note: _noteController.text);
   }
 
+  Future<void> _openReferralDetail(BuildContext context, Referral referral) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Text(
+              'Detail rujukan',
+              style: Theme.of(sheetContext).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${referral.namaBalita} | Ibu: ${referral.namaIbu}',
+              style: const TextStyle(color: LedgerColors.inkSoft),
+            ),
+            const SizedBox(height: 12),
+            RiskBadge(risk: referral.riskLevel),
+            const SizedBox(height: 12),
+            const Text(
+              'Validasi ini mencatat keputusan tindak lanjut, bukan diagnosis.',
+              style: TextStyle(color: LedgerColors.inkSoft),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              key: const Key('validateReferralDetailButton'),
+              onPressed: () async {
+                await ref
+                    .read(bidanDashboardControllerProvider.notifier)
+                    .validateReferral(
+                      referralId: referral.id,
+                      childId: referral.childId,
+                      decision: _decision,
+                      note: _noteController.text,
+                    );
+                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Validasi tersimpan')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Simpan Validasi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _openNotification(
     BuildContext context,
     AppNotification notification,
@@ -408,9 +473,10 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
 }
 
 class _ReferralRow extends StatelessWidget {
-  const _ReferralRow({required this.referral});
+  const _ReferralRow({required this.referral, required this.onTap});
 
   final Referral referral;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -419,6 +485,7 @@ class _ReferralRow extends StatelessWidget {
       subtitle:
           'Ibu: ${referral.namaIbu} | ${_readableStatus(referral.status)}',
       trailing: RiskBadge(risk: referral.riskLevel),
+      onTap: onTap,
     );
   }
 }
