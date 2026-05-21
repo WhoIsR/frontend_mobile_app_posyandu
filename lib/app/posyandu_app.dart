@@ -81,39 +81,71 @@ class _RoleShellState extends ConsumerState<RoleShell> {
 
   _RoleShellSpec _shellSpec(UserRole role) {
     return switch (role) {
-      UserRole.admin => const _RoleShellSpec(
+      UserRole.admin => _RoleShellSpec(
         titles: _adminTitles,
         destinations: _adminDestinations,
         pages: [
-          AdminDashboardPage(),
-          AdminDashboardPage(focus: 'akun'),
-          AdminDashboardPage(focus: 'posyandu'),
-          AdminDashboardPage(focus: 'laporan'),
+          AdminDashboardPage(onNavigate: _navigateAdmin),
+          AdminDashboardPage(focus: 'akun', onNavigate: _navigateAdmin),
+          AdminDashboardPage(focus: 'posyandu', onNavigate: _navigateAdmin),
+          AdminDashboardPage(focus: 'laporan', onNavigate: _navigateAdmin),
         ],
       ),
-      UserRole.bidan => const _RoleShellSpec(
+      UserRole.bidan => _RoleShellSpec(
         titles: _bidanTitles,
         destinations: _bidanDestinations,
         pages: [
-          BidanDashboardPage(),
-          BidanDashboardPage(focus: 'rujukan'),
-          BidanDashboardPage(focus: 'pmt'),
-          BidanDashboardPage(focus: 'laporan'),
-          BidanDashboardPage(focus: 'notifikasi'),
+          BidanDashboardPage(onNavigate: _navigateBidan),
+          BidanDashboardPage(focus: 'rujukan', onNavigate: _navigateBidan),
+          BidanDashboardPage(focus: 'pmt', onNavigate: _navigateBidan),
+          BidanDashboardPage(focus: 'laporan', onNavigate: _navigateBidan),
+          BidanDashboardPage(focus: 'notifikasi', onNavigate: _navigateBidan),
         ],
       ),
-      UserRole.kader => const _RoleShellSpec(
+      UserRole.kader => _RoleShellSpec(
         titles: _kaderTitles,
         destinations: _kaderDestinations,
         pages: [
-          KaderDashboardPage(),
-          KaderDashboardPage(focus: 'sesi'),
-          KaderDashboardPage(focus: 'balita'),
-          KaderDashboardPage(focus: 'skrining'),
-          KaderDashboardPage(focus: 'notifikasi'),
+          KaderDashboardPage(onNavigate: _navigateKader),
+          KaderDashboardPage(focus: 'sesi', onNavigate: _navigateKader),
+          KaderDashboardPage(focus: 'balita', onNavigate: _navigateKader),
+          KaderDashboardPage(focus: 'skrining', onNavigate: _navigateKader),
+          KaderDashboardPage(focus: 'notifikasi', onNavigate: _navigateKader),
         ],
       ),
     };
+  }
+
+  void _navigateKader(String focus) {
+    final next = switch (focus) {
+      'sesi' => 1,
+      'balita' => 2,
+      'skrining' => 3,
+      'notifikasi' => 4,
+      _ => 0,
+    };
+    setState(() => _index = next);
+  }
+
+  void _navigateBidan(String focus) {
+    final next = switch (focus) {
+      'rujukan' => 1,
+      'pmt' => 2,
+      'laporan' => 3,
+      'notifikasi' => 4,
+      _ => 0,
+    };
+    setState(() => _index = next);
+  }
+
+  void _navigateAdmin(String focus) {
+    final next = switch (focus) {
+      'akun' => 1,
+      'posyandu' => 2,
+      'laporan' => 3,
+      _ => 0,
+    };
+    setState(() => _index = next);
   }
 }
 

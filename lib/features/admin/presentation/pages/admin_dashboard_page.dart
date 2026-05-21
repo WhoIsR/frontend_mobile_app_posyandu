@@ -7,9 +7,10 @@ import '../../../../shared/widgets/ledger_widgets.dart';
 import '../controllers/admin_dashboard_controller.dart';
 
 class AdminDashboardPage extends ConsumerWidget {
-  const AdminDashboardPage({super.key, this.focus});
+  const AdminDashboardPage({super.key, this.focus, this.onNavigate});
 
   final String? focus;
+  final ValueChanged<String>? onNavigate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,32 +37,49 @@ class AdminDashboardPage extends ConsumerWidget {
         .where((row) => row.role == 'kader')
         .length;
     return [
-      Text(
-        'Ringkasan Admin',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      const PageHeader(
+        title: 'Kontrol operasional',
+        subtitle:
+            'Kelola akun kerja dan wilayah Posyandu secukupnya untuk menjalankan MVP.',
+        icon: Icons.admin_panel_settings_outlined,
       ),
-      const SizedBox(height: 4),
-      const Text(
-        'Kelola akun dan Posyandu dasar untuk operasional aplikasi.',
-        style: TextStyle(color: LedgerColors.inkSoft),
+      const SizedBox(height: 12),
+      MetricGrid(
+        items: [
+          MetricItem(
+            label: 'Bidan',
+            value: '$bidanCount',
+            helper: 'akun aktif',
+            icon: Icons.medical_services_outlined,
+            accent: LedgerColors.bidanBlue,
+            soft: LedgerColors.primarySoft,
+          ),
+          MetricItem(
+            label: 'Kader',
+            value: '$kaderCount',
+            helper: 'akun aktif',
+            icon: Icons.groups_outlined,
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
       LedgerListRow(
         title: 'Akun aktif',
         subtitle: '$bidanCount bidan dan $kaderCount kader terdaftar.',
-        trailing: const Icon(Icons.people_outline),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => onNavigate?.call('akun'),
       ),
       LedgerListRow(
         title: 'Posyandu',
         subtitle: '${state.posyandu.length} Posyandu tercatat.',
-        trailing: const Icon(Icons.home_work_outlined),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => onNavigate?.call('posyandu'),
       ),
       LedgerListRow(
         title: 'Laporan PDF',
         subtitle: 'Preview/share 3 laporan PRD dari data server.',
-        trailing: const Icon(Icons.description_outlined),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => onNavigate?.call('laporan'),
       ),
       if (state.message != null)
         InlineMessage(text: state.message!, isError: state.isError),
@@ -70,10 +88,11 @@ class AdminDashboardPage extends ConsumerWidget {
 
   List<Widget> _accounts(BuildContext context, AdminDashboardState state) {
     return [
-      const SectionTitle('Akun'),
-      const Text(
-        'Admin hanya mengelola akun Kader dan Bidan untuk kebutuhan operasional.',
-        style: TextStyle(color: LedgerColors.inkSoft),
+      const PageHeader(
+        title: 'Akun',
+        subtitle:
+            'Admin hanya mengelola akun Kader dan Bidan untuk kebutuhan operasional.',
+        icon: Icons.people_outline,
       ),
       const SizedBox(height: 12),
       if (state.accounts.isEmpty)
@@ -99,10 +118,11 @@ class AdminDashboardPage extends ConsumerWidget {
 
   List<Widget> _posyandu(BuildContext context, AdminDashboardState state) {
     return [
-      const SectionTitle('Posyandu'),
-      const Text(
-        'Data wilayah kerja dasar untuk menghubungkan Bidan, Kader, dan balita.',
-        style: TextStyle(color: LedgerColors.inkSoft),
+      const PageHeader(
+        title: 'Posyandu',
+        subtitle:
+            'Data wilayah kerja dasar untuk menghubungkan Bidan, Kader, dan balita.',
+        icon: Icons.home_work_outlined,
       ),
       const SizedBox(height: 12),
       if (state.posyandu.isEmpty)
@@ -127,10 +147,11 @@ class AdminDashboardPage extends ConsumerWidget {
     AdminDashboardState state,
   ) {
     return [
-      const SectionTitle('Laporan PDF'),
-      const Text(
-        'Admin dapat mengambil laporan operasional yang sama untuk kebutuhan demo dan audit dasar.',
-        style: TextStyle(color: LedgerColors.inkSoft),
+      const PageHeader(
+        title: 'Laporan PDF',
+        subtitle:
+            'Ambil laporan operasional untuk kebutuhan demo dan audit dasar.',
+        icon: Icons.description_outlined,
       ),
       const SizedBox(height: 12),
       _AdminReportRangePicker(

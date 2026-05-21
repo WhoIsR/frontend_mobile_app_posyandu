@@ -11,9 +11,10 @@ import '../../domain/entities/referral.dart';
 import '../controllers/bidan_dashboard_controller.dart';
 
 class BidanDashboardPage extends ConsumerStatefulWidget {
-  const BidanDashboardPage({super.key, this.focus});
+  const BidanDashboardPage({super.key, this.focus, this.onNavigate});
 
   final String? focus;
+  final ValueChanged<String>? onNavigate;
 
   @override
   ConsumerState<BidanDashboardPage> createState() => _BidanDashboardPageState();
@@ -74,8 +75,9 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     final notifications = data?.notifications.length ?? 0;
     return [
       const _PageIntro(
-        title: 'Ringkasan Bidan',
-        subtitle: 'Pantau rujukan, PMT, dan laporan tanpa membuka semua menu.',
+        title: 'Triage hari ini',
+        subtitle:
+            'Prioritaskan rujukan masuk, cek stok PMT, lalu ambil laporan bila dibutuhkan.',
       ),
       const SizedBox(height: 12),
       _SummaryStrip(
@@ -100,12 +102,22 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
         subtitle: waiting == 0
             ? 'Belum ada rujukan yang menunggu validasi.'
             : '$waiting rujukan menunggu keputusan bidan.',
-        trailing: const Icon(Icons.chevron_right),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('rujukan'),
+      ),
+      LedgerListRow(
+        title: 'Stok dan distribusi PMT',
+        subtitle: lowStock > 0
+            ? '$lowStock item perlu dicek sebelum distribusi.'
+            : 'Stok PMT saat ini aman untuk tindak lanjut.',
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('pmt'),
       ),
       LedgerListRow(
         title: 'Notifikasi',
         subtitle: '$notifications pesan untuk bidan.',
-        trailing: const Icon(Icons.notifications_none),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('notifikasi'),
       ),
     ];
   }

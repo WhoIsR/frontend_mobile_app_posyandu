@@ -12,9 +12,10 @@ import '../../domain/entities/screening_item.dart';
 import '../controllers/kader_dashboard_controller.dart';
 
 class KaderDashboardPage extends ConsumerStatefulWidget {
-  const KaderDashboardPage({super.key, this.focus});
+  const KaderDashboardPage({super.key, this.focus, this.onNavigate});
 
   final String? focus;
+  final ValueChanged<String>? onNavigate;
 
   @override
   ConsumerState<KaderDashboardPage> createState() => _KaderDashboardPageState();
@@ -80,33 +81,50 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     final screeningCount = data?.screening.length ?? 0;
     final notificationCount = data?.notifications.length ?? 0;
     return [
-      Text(
-        'Ringkasan Kader',
-        style: Theme.of(
-          context,
-        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      const PageHeader(
+        title: 'Mulai kerja hari ini',
+        subtitle:
+            'Cari balita, input pengukuran, lalu pantau hasil skrining tanpa bolak-balik bingung.',
+        icon: Icons.health_and_safety_outlined,
       ),
-      const Text(
-        'Posyandu aktif hari ini',
-        style: TextStyle(color: LedgerColors.inkSoft),
+      const SizedBox(height: 12),
+      MetricGrid(
+        items: [
+          MetricItem(
+            label: 'Balita',
+            value: '$childCount',
+            helper: 'siap dicatat',
+            icon: Icons.child_care_outlined,
+          ),
+          MetricItem(
+            label: 'Skrining',
+            value: '$screeningCount',
+            helper: 'hari ini',
+            icon: Icons.fact_check_outlined,
+            accent: LedgerColors.bidanBlue,
+            soft: LedgerColors.primarySoft,
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
       ..._sessionSection(data, showMeasurement: false),
-      const SizedBox(height: 16),
       LedgerListRow(
-        title: 'Balita terdaftar',
-        subtitle: '$childCount balita siap dicari dan dicatat.',
-        trailing: const Icon(Icons.child_care_outlined),
+        title: 'Cari atau tambah balita',
+        subtitle: 'Buka register untuk memilih anak yang akan diukur.',
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('balita'),
       ),
       LedgerListRow(
-        title: 'Skrining hari ini',
-        subtitle: '$screeningCount hasil skrining tersimpan.',
-        trailing: const Icon(Icons.fact_check_outlined),
+        title: 'Input pengukuran',
+        subtitle: 'Masukkan berat dan tinggi badan dari sesi berjalan.',
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('sesi'),
       ),
       LedgerListRow(
         title: 'Notifikasi',
         subtitle: '$notificationCount pesan untuk kader.',
-        trailing: const Icon(Icons.notifications_none),
+        trailing: const Icon(Icons.arrow_forward),
+        onTap: () => widget.onNavigate?.call('notifikasi'),
       ),
     ];
   }
@@ -146,6 +164,13 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     KaderDashboardState state,
   ) {
     return [
+      const PageHeader(
+        title: 'Register balita',
+        subtitle:
+            'Cari dulu sebelum menambah data baru agar catatan anak tidak dobel.',
+        icon: Icons.child_care_outlined,
+      ),
+      const SizedBox(height: 12),
       Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -239,7 +264,13 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
 
   List<Widget> _screeningSection(KaderDashboardData? data) {
     return [
-      const SectionTitle('Hasil Skrining Hari Ini'),
+      const PageHeader(
+        title: 'Hasil Skrining Hari Ini',
+        subtitle:
+            'Gunakan label ini sebagai skrining awal dan tindak lanjut empatik.',
+        icon: Icons.fact_check_outlined,
+      ),
+      const SizedBox(height: 12),
       if (data?.screening.isEmpty ?? true)
         const EmptyState(text: 'Belum ada hasil skrining pada sesi ini.')
       else
@@ -252,7 +283,12 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     KaderDashboardData? data,
   ) {
     return [
-      const SectionTitle('Notifikasi'),
+      const PageHeader(
+        title: 'Notifikasi',
+        subtitle: 'Buka pesan untuk melihat konteks tindak lanjut dari sistem.',
+        icon: Icons.notifications_outlined,
+      ),
+      const SizedBox(height: 12),
       if (data?.notifications.isEmpty ?? true)
         const EmptyState(text: 'Belum ada notifikasi.')
       else

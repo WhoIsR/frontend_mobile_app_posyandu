@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class LedgerColors {
-  static const paper = Color(0xFFF8F4EC);
-  static const surface = Color(0xFFFFFDF8);
-  static const line = Color(0xFFDDD2C3);
+  static const paper = Color(0xFFFAF7F1);
+  static const surface = Color(0xFFFFFEFA);
+  static const surfaceAlt = Color(0xFFF0F5EF);
+  static const line = Color(0xFFE1D8CA);
   static const ink = Color(0xFF25231F);
   static const inkSoft = Color(0xFF5D594F);
+  static const inkMuted = Color(0xFF817A70);
   static const primary = Color(0xFF4E6F5C);
   static const primarySoft = Color(0xFFDDE8DE);
   static const bidanBlue = Color(0xFF4F6F86);
@@ -24,7 +26,7 @@ class LedgerTheme {
       textTheme: const TextTheme(
         titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        bodyLarge: TextStyle(fontSize: 15, height: 1.35),
+        bodyLarge: TextStyle(fontSize: 15, height: 1.4),
         bodyMedium: TextStyle(fontSize: 14, height: 1.35),
         labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
       ),
@@ -39,7 +41,7 @@ class LedgerTheme {
             outline: LedgerColors.line,
           ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: LedgerColors.surface,
+        backgroundColor: LedgerColors.paper,
         foregroundColor: LedgerColors.ink,
         elevation: 0,
         centerTitle: false,
@@ -51,9 +53,11 @@ class LedgerTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 76,
-        backgroundColor: const Color(0xFFEAF1EA),
+        height: 78,
+        backgroundColor: LedgerColors.surface,
         indicatorColor: LedgerColors.primarySoft,
+        surfaceTintColor: Colors.transparent,
+        elevation: 2,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             color: LedgerColors.ink,
@@ -93,6 +97,7 @@ class LedgerTheme {
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(52),
           backgroundColor: LedgerColors.primary,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),

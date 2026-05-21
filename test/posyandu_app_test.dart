@@ -37,7 +37,7 @@ void main() {
 
     expect(auth.lastLoginNik, '3276010101010001');
     expect(find.text('Beranda Kader'), findsWidgets);
-    expect(find.text('Ringkasan Kader'), findsOneWidget);
+    expect(find.text('Mulai kerja hari ini'), findsOneWidget);
     expect(find.text('Sesi hari ini'), findsOneWidget);
     expect(find.text('Laporan'), findsNothing);
   });
@@ -51,7 +51,7 @@ void main() {
     await _submitLogin(tester, nik: '1976010101010001');
 
     expect(find.text('Beranda Bidan'), findsOneWidget);
-    expect(find.text('Ringkasan Bidan'), findsOneWidget);
+    expect(find.text('Triage hari ini'), findsOneWidget);
     expect(find.text('PMT'), findsWidgets);
   });
 
@@ -280,7 +280,12 @@ void main() {
     await tester.tap(find.text('Rujukan').last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('validateButton')));
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('validateButton')),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('validateButton')));
     await tester.pumpAndSettle();
 
