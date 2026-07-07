@@ -11,6 +11,7 @@ import '../features/kader/presentation/pages/kader_dashboard_page.dart';
 import '../shared/widgets/ledger_widgets.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_colors.dart';
+import 'widgets/floating_glass_navigation_bar.dart';
 
 bool get _isTest => Platform.environment.containsKey('FLUTTER_TEST');
 
@@ -114,7 +115,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
           child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingGlassNavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() {
           _index = value;
@@ -226,24 +227,35 @@ class _RoleShellSpec {
   });
 
   final List<String> titles;
-  final List<NavigationDestination> destinations;
+  final List<FloatingGlassNavDestination> destinations;
   final List<Widget> pages;
 }
 
-List<NavigationDestination> get _kaderDestinations => [
-  const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  const NavigationDestination(
-    icon: Icon(Icons.event_available_outlined),
+List<FloatingGlassNavDestination> get _kaderDestinations => [
+  const FloatingGlassNavDestination(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
+    label: 'Beranda',
+  ),
+  const FloatingGlassNavDestination(
+    icon: Icons.event_available_outlined,
+    activeIcon: Icons.event_available,
     label: 'Sesi',
   ),
-  const NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
-  const NavigationDestination(
-    icon: Icon(Icons.fact_check_outlined),
+  const FloatingGlassNavDestination(
+    icon: Icons.child_care_outlined,
+    activeIcon: Icons.child_care,
+    label: 'Balita',
+  ),
+  const FloatingGlassNavDestination(
+    icon: Icons.fact_check_outlined,
+    activeIcon: Icons.fact_check,
     label: 'Skrining',
   ),
   if (_isTest)
-    const NavigationDestination(
-      icon: Icon(Icons.notifications_outlined),
+    const FloatingGlassNavDestination(
+      icon: Icons.notifications_outlined,
+      activeIcon: Icons.notifications,
       label: 'Notifikasi',
     ),
 ];
@@ -256,21 +268,36 @@ List<String> get _kaderTitles => [
   if (_isTest) 'Notifikasi Kader',
 ];
 
-List<NavigationDestination> get _bidanDestinations => [
-  const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  const NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
-  const NavigationDestination(
-    icon: Icon(Icons.assignment_late_outlined),
+List<FloatingGlassNavDestination> get _bidanDestinations => [
+  const FloatingGlassNavDestination(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
+    label: 'Beranda',
+  ),
+  const FloatingGlassNavDestination(
+    icon: Icons.child_care_outlined,
+    activeIcon: Icons.child_care,
+    label: 'Balita',
+  ),
+  const FloatingGlassNavDestination(
+    icon: Icons.assignment_late_outlined,
+    activeIcon: Icons.assignment_late,
     label: 'Rujukan',
   ),
-  const NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'PMT'),
-  const NavigationDestination(
-    icon: Icon(Icons.description_outlined),
+  const FloatingGlassNavDestination(
+    icon: Icons.inventory_2_outlined,
+    activeIcon: Icons.inventory_2,
+    label: 'PMT',
+  ),
+  const FloatingGlassNavDestination(
+    icon: Icons.description_outlined,
+    activeIcon: Icons.description,
     label: 'Laporan',
   ),
   if (_isTest)
-    const NavigationDestination(
-      icon: Icon(Icons.notifications_outlined),
+    const FloatingGlassNavDestination(
+      icon: Icons.notifications_outlined,
+      activeIcon: Icons.notifications,
       label: 'Notifikasi',
     ),
 ];
@@ -285,18 +312,29 @@ List<String> get _bidanTitles => [
 ];
 
 const _adminDestinations = [
-  NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Beranda'),
-  NavigationDestination(icon: Icon(Icons.people_outline), label: 'Akun'),
-  NavigationDestination(
-    icon: Icon(Icons.home_work_outlined),
+  FloatingGlassNavDestination(
+    icon: Icons.dashboard_outlined,
+    activeIcon: Icons.dashboard,
+    label: 'Beranda',
+  ),
+  FloatingGlassNavDestination(
+    icon: Icons.people_outline,
+    activeIcon: Icons.people,
+    label: 'Akun',
+  ),
+  FloatingGlassNavDestination(
+    icon: Icons.home_work_outlined,
+    activeIcon: Icons.home_work,
     label: 'Posyandu',
   ),
-  NavigationDestination(
-    icon: Icon(Icons.event_available_outlined),
+  FloatingGlassNavDestination(
+    icon: Icons.event_available_outlined,
+    activeIcon: Icons.event_available,
     label: 'Sesi',
   ),
-  NavigationDestination(
-    icon: Icon(Icons.description_outlined),
+  FloatingGlassNavDestination(
+    icon: Icons.description_outlined,
+    activeIcon: Icons.description,
     label: 'Laporan',
   ),
 ];

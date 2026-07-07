@@ -108,12 +108,15 @@ class LedgerTheme {
       ),
       cardTheme: CardThemeData(
         color: LedgerColors.surface,
-        elevation: 1,
-        shadowColor: LedgerColors.primary.withValues(alpha: 0.10),
+        elevation: 2,
+        shadowColor: LedgerColors.primary.withValues(alpha: 0.05),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: LedgerColors.line),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: LedgerColors.line.withValues(alpha: 0.4),
+            width: 1.0,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(

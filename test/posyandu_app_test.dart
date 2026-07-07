@@ -566,6 +566,8 @@ void main() {
     expect(find.text('Bidan Sari'), findsOneWidget);
     expect(find.text('NIP/NIK 1976010101010001'), findsOneWidget);
     expect(find.text('Posyandu Melati 03'), findsWidgets);
+    await tester.drag(find.byType(ListView).last, const Offset(0, -200));
+    await tester.pumpAndSettle();
     expect(find.text('Kader Cuti'), findsOneWidget);
     expect(find.text('nonaktif'), findsWidgets);
   });
