@@ -14,6 +14,12 @@ class BalitaModel extends Balita {
     super.latestWeight,
     super.latestHeight,
     super.latestMeasuredAt,
+    super.nikBalita,
+    super.nikIbu,
+    super.alamat,
+    super.penghasilan,
+    super.jumlahKeluarga,
+    super.posyanduId,
   });
 
   factory BalitaModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +32,12 @@ class BalitaModel extends Balita {
       latestWeight: _asDouble(json['latest_weight']),
       latestHeight: _asDouble(json['latest_height']),
       latestMeasuredAt: json['latest_measured_at']?.toString(),
+      nikBalita: json['nik_balita']?.toString(),
+      nikIbu: json['nik_ibu']?.toString(),
+      alamat: json['alamat']?.toString(),
+      penghasilan: json['penghasilan'] != null ? _asInt(json['penghasilan']) : null,
+      jumlahKeluarga: json['jumlah_keluarga'] != null ? _asInt(json['jumlah_keluarga']) : null,
+      posyanduId: json['posyandu_id'] != null ? _asInt(json['posyandu_id']) : null,
     );
   }
 }
@@ -53,16 +65,21 @@ class MeasurementResultModel extends MeasurementResult {
     required super.id,
     required super.predictionStatus,
     super.riskLevel,
+    super.continuityMessage,
   });
 
   factory MeasurementResultModel.fromJson(Map<String, dynamic> json) {
     final prediction = json['hasil_prediksi'];
+    final continuity = json['continuity_summary'];
     return MeasurementResultModel(
       id: _asInt(json['id']),
       predictionStatus: json['status_prediksi']?.toString() ?? 'menunggu',
-      riskLevel: prediction is Map
-          ? prediction['risk_level']?.toString()
-          : json['risk_level']?.toString(),
+      riskLevel: json['overall_risk_level']?.toString() ??
+          json['risk_level']?.toString() ??
+          (prediction is Map ? prediction['risk_level']?.toString() : null),
+      continuityMessage: continuity is Map
+          ? continuity['message']?.toString()
+          : null,
     );
   }
 }
@@ -73,14 +90,24 @@ class ScreeningItemModel extends ScreeningItem {
     required super.namaBalita,
     required super.predictionStatus,
     super.riskLevel,
+    super.continuityLabel,
+    super.continuityMessage,
   });
 
   factory ScreeningItemModel.fromJson(Map<String, dynamic> json) {
+    final continuity = json['continuity_summary'];
     return ScreeningItemModel(
       id: _asInt(json['id']),
       namaBalita: json['nama_balita']?.toString() ?? '-',
       predictionStatus: json['status_prediksi']?.toString() ?? 'menunggu',
-      riskLevel: json['risk_level']?.toString(),
+      riskLevel: json['overall_risk_level']?.toString() ??
+          json['risk_level']?.toString(),
+      continuityLabel: continuity is Map
+          ? continuity['label']?.toString()
+          : null,
+      continuityMessage: continuity is Map
+          ? continuity['message']?.toString()
+          : null,
     );
   }
 }

@@ -15,17 +15,31 @@ class KaderRepositoryImpl implements KaderRepository {
 
   @override
   Future<KaderDashboardData> dashboard() async {
-    final session = await activeSession();
-    final children = await searchChildren();
-    final notifications = await this.notifications();
-    final screeningRows = session == null
-        ? <ScreeningItem>[]
-        : await screening(session.id);
+    // Jalankan request independen secara paralel
+    final sessionFuture = activeSession();
+    final childrenFuture = searchChildren();
+    final notificationsFuture = notifications();
+
+    // Tunggu session karena ID-nya dibutuhkan untuk screening
+    final session = await sessionFuture;
+
+    // Jalankan request screening secara paralel dengan sisa request lainnya
+    final screeningFuture = session == null
+        ? Future.value(<ScreeningItem>[])
+        : screening(session.id);
+
+    // Kumpulkan semua hasil yang tersisa
+    final results = await Future.wait([
+      childrenFuture,
+      notificationsFuture,
+      screeningFuture,
+    ]);
+
     return KaderDashboardData(
       session: session,
-      children: children,
-      screening: screeningRows,
-      notifications: notifications,
+      children: results[0] as List<Balita>,
+      notifications: results[1] as List<AppNotification>,
+      screening: results[2] as List<ScreeningItem>,
     );
   }
 
@@ -40,6 +54,11 @@ class KaderRepositoryImpl implements KaderRepository {
   @override
   Future<Balita> createBalita(CreateBalitaRequest request) {
     return _remoteDataSource.createBalita(request);
+  }
+
+  @override
+  Future<Balita> updateBalita(int id, CreateBalitaRequest request) {
+    return _remoteDataSource.updateBalita(id, request);
   }
 
   @override

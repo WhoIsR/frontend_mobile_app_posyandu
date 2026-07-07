@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/network/api_client.dart';
 import '../core/notifications/fcm_registration_service.dart';
+import '../core/analytics/analytics_service.dart';
 import '../core/token_store.dart';
 import '../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../features/auth/data/repositories/auth_repository_impl.dart';
@@ -27,6 +28,7 @@ import '../features/kader/domain/usecases/get_kader_dashboard.dart';
 import '../features/kader/domain/usecases/retry_prediction.dart';
 import '../features/kader/domain/usecases/save_measurement.dart';
 import '../features/kader/domain/usecases/search_balita.dart';
+import '../features/kader/domain/usecases/update_balita.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
@@ -90,6 +92,10 @@ final createBalitaProvider = Provider<CreateBalita>(
   (ref) => CreateBalita(ref.watch(kaderRepositoryProvider)),
 );
 
+final updateBalitaProvider = Provider<UpdateBalita>(
+  (ref) => UpdateBalita(ref.watch(kaderRepositoryProvider)),
+);
+
 final saveMeasurementProvider = Provider<SaveMeasurement>(
   (ref) => SaveMeasurement(ref.watch(kaderRepositoryProvider)),
 );
@@ -120,4 +126,8 @@ final distributePmtProvider = Provider<DistributePmt>(
 
 final downloadReportProvider = Provider<DownloadReport>(
   (ref) => DownloadReport(ref.watch(bidanRepositoryProvider)),
+);
+
+final analyticsServiceProvider = Provider<AnalyticsService>(
+  (ref) => AnalyticsService(ref.watch(apiClientProvider)),
 );

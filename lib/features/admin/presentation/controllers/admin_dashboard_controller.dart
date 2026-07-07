@@ -22,6 +22,7 @@ class AdminDashboardState {
     this.reportType,
     this.reportStartDate,
     this.reportEndDate,
+    this.downloadingReportType,
   });
 
   final List<AdminAccount> accounts;
@@ -36,6 +37,7 @@ class AdminDashboardState {
   final String? reportType;
   final String? reportStartDate;
   final String? reportEndDate;
+  final String? downloadingReportType;
 
   AdminDashboardState copyWith({
     List<AdminAccount>? accounts,
@@ -53,6 +55,8 @@ class AdminDashboardState {
     bool clearReport = false,
     String? reportStartDate,
     String? reportEndDate,
+    String? downloadingReportType,
+    bool clearDownloadingReportType = false,
   }) {
     return AdminDashboardState(
       accounts: accounts ?? this.accounts,
@@ -69,6 +73,9 @@ class AdminDashboardState {
       reportType: clearReport ? null : reportType ?? this.reportType,
       reportStartDate: reportStartDate ?? this.reportStartDate,
       reportEndDate: reportEndDate ?? this.reportEndDate,
+      downloadingReportType: clearDownloadingReportType
+          ? null
+          : downloadingReportType ?? this.downloadingReportType,
     );
   }
 }
@@ -106,6 +113,7 @@ class AdminDashboardController extends Notifier<AdminDashboardState> {
   }
 
   Future<void> downloadReport(String type) async {
+    state = state.copyWith(downloadingReportType: type, clearMessage: true);
     try {
       final bytes = await ref
           .read(adminRepositoryProvider)
@@ -115,6 +123,7 @@ class AdminDashboardController extends Notifier<AdminDashboardState> {
             endDate: state.reportEndDate,
           );
       state = state.copyWith(
+        clearDownloadingReportType: true,
         message: 'Preview PDF siap',
         isError: false,
         reportBytes: bytes,
@@ -122,6 +131,7 @@ class AdminDashboardController extends Notifier<AdminDashboardState> {
       );
     } catch (error) {
       state = state.copyWith(
+        clearDownloadingReportType: true,
         message: error is ApiException
             ? error.message
             : 'Laporan belum bisa diunduh.',

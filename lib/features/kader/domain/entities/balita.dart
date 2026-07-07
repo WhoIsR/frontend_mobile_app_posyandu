@@ -8,6 +8,12 @@ class Balita {
     this.latestWeight,
     this.latestHeight,
     this.latestMeasuredAt,
+    this.nikBalita,
+    this.nikIbu,
+    this.alamat,
+    this.penghasilan,
+    this.jumlahKeluarga,
+    this.posyanduId,
   });
 
   final int id;
@@ -18,4 +24,10 @@ class Balita {
   final double? latestWeight;
   final double? latestHeight;
   final String? latestMeasuredAt;
+  final String? nikBalita;
+  final String? nikIbu;
+  final String? alamat;
+  final int? penghasilan;
+  final int? jumlahKeluarga;
+  final int? posyanduId;
 }

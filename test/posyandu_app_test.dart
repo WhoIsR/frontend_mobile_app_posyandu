@@ -28,6 +28,15 @@ import 'package:mobile/features/kader/domain/entities/posyandu_session.dart';
 import 'package:mobile/features/kader/domain/entities/screening_item.dart';
 import 'package:mobile/features/kader/domain/repositories/kader_repository.dart';
 
+String _expectedAgeText(String tanggalLahir) {
+  final birthDate = DateTime.parse(tanggalLahir);
+  final now = DateTime.now();
+  var months = (now.year - birthDate.year) * 12 + now.month - birthDate.month;
+  if (now.day < birthDate.day) months -= 1;
+  if (months < 0) months = 0;
+  return 'Usia $months bulan';
+}
+
 void main() {
   testWidgets('login sukses Kader mengarah ke shell Kader', (tester) async {
     final auth = FakeAuthRepository.loginAs(UserRole.kader);
@@ -87,13 +96,17 @@ void main() {
   testWidgets('Kader input pengukuran sukses menampilkan hasil skrining', (
     tester,
   ) async {
-    final kader = FakeKaderRepository();
+    final kader = FakeKaderRepository()..startMeasured = false;
     await tester.pumpWidget(
       _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
     );
     await tester.pumpAndSettle();
     await _submitLogin(tester);
     await tester.tap(find.text('Sesi').last);
+    await tester.pumpAndSettle();
+
+    // Select a child from recommendation
+    await tester.tap(find.byKey(const Key('nextQueueChildButton')));
     await tester.pumpAndSettle();
 
     await _scrollToKaderMeasurementFields(tester);
@@ -112,10 +125,15 @@ void main() {
       find.textContaining('Pertumbuhan anak perlu diperhatikan'),
       findsOneWidget,
     );
+    await tester.tap(find.text('Raka Pratama'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tren perlu perhatian'), findsOneWidget);
+    expect(find.textContaining('Pertumbuhan terakhir melambat'), findsOneWidget);
   });
 
   testWidgets('duplikasi pengukuran menampilkan pesan backend', (tester) async {
     final kader = FakeKaderRepository()
+      ..startMeasured = false
       ..measurementError = 'Balita ini sudah dicatat pada sesi hari ini.';
     await tester.pumpWidget(
       _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
@@ -123,6 +141,10 @@ void main() {
     await tester.pumpAndSettle();
     await _submitLogin(tester);
     await tester.tap(find.text('Sesi').last);
+    await tester.pumpAndSettle();
+
+    // Select a child from recommendation
+    await tester.tap(find.byKey(const Key('nextQueueChildButton')));
     await tester.pumpAndSettle();
 
     await _scrollToKaderMeasurementFields(tester);
@@ -141,13 +163,19 @@ void main() {
   testWidgets(
     'prediksi gagal tetap menampilkan pengukuran tersimpan dan retry',
     (tester) async {
-      final kader = FakeKaderRepository()..predictionFails = true;
+      final kader = FakeKaderRepository()
+        ..startMeasured = false
+        ..predictionFails = true;
       await tester.pumpWidget(
         _app(auth: FakeAuthRepository.loginAs(UserRole.kader), kader: kader),
       );
       await tester.pumpAndSettle();
       await _submitLogin(tester);
       await tester.tap(find.text('Sesi').last);
+      await tester.pumpAndSettle();
+
+      // Select a child from recommendation
+      await tester.tap(find.byKey(const Key('nextQueueChildButton')));
       await tester.pumpAndSettle();
 
       await _scrollToKaderMeasurementFields(tester);
@@ -284,17 +312,19 @@ void main() {
     await tester.tap(find.text('Rujukan').last);
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('validateButton')),
-      120,
-      scrollable: find.byType(Scrollable).last,
-    );
+    // Tap a referral row to open bottom sheet
+    await tester.tap(find.text('Raka Pratama').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('validateButton')));
+    expect(find.text('Detail Rujukan'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('validateReferralDetailButton')),
+    );
+    await tester.tap(find.byKey(const Key('validateReferralDetailButton')));
     await tester.pumpAndSettle();
 
     expect(bidan.validatedDecision, 'observasi');
-    expect(find.text('Validasi tersimpan'), findsOneWidget);
+    expect(find.text('Validasi tersimpan'), findsWidgets);
   });
 
   testWidgets('Bidan distribusi PMT dari validasi PMT', (tester) async {
@@ -307,24 +337,39 @@ void main() {
     await tester.tap(find.text('Rujukan').last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('decisionDropdown')));
-    await tester.tap(find.byKey(const Key('decisionDropdown')));
+    // Tap a referral to open bottom sheet, choose PMT, validate
+    await tester.tap(find.text('Raka Pratama').first);
+    await tester.pumpAndSettle();
+    // Find the dropdown in the bottom sheet
+    final dropdowns = find.byType(DropdownButtonFormField<String>);
+    await tester.ensureVisible(dropdowns.last);
+    await tester.tap(dropdowns.last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('PMT').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('validateButton')));
+    await tester.ensureVisible(
+      find.byKey(const Key('validateReferralDetailButton')),
+    );
+    await tester.tap(find.byKey(const Key('validateReferralDetailButton')));
     await tester.pumpAndSettle();
 
+    // Navigate to PMT tab where the pending distribution should appear
     await tester.tap(find.text('PMT').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('distributePmtButton')));
-    await tester.tap(find.byKey(const Key('distributePmtButton')));
+    expect(find.text('Raka Pratama'), findsWidgets);
+    await tester.ensureVisible(
+      find.byKey(const Key('distributePmtButton-0')),
+    );
+    // Drag up to clear bottom nav overlap
+    await tester.drag(find.byType(ListView).last, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('distributePmtButton-0')));
     await tester.pumpAndSettle();
 
     expect(bidan.validatedDecision, 'pmt');
     expect(bidan.distributedPmtId, 51);
     expect(bidan.distributedQuantity, 1);
-    expect(find.text('Distribusi PMT tersimpan'), findsOneWidget);
+    expect(find.text('Distribusi PMT tersimpan'), findsWidgets);
   });
 
   testWidgets('Bidan bottom nav menampilkan halaman sesuai tab', (
@@ -373,8 +418,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bidan.downloadedReports, ['prediksi']);
-    expect(find.text('Preview PDF siap'), findsWidgets);
-    expect(find.text('Bagikan / Simpan'), findsOneWidget);
+    
+    // Drag up to reveal bottom preview panel
+    await tester.drag(find.byType(ListView).last, const Offset(0, -350));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Laporan siap'), findsOneWidget);
+    expect(find.text('Bagikan'), findsOneWidget);
   });
 
   testWidgets('Admin bisa melihat akun dan Posyandu', (tester) async {
@@ -555,9 +605,9 @@ void main() {
 
     await tester.tap(find.text('Balita').last);
     await tester.pumpAndSettle();
-    expect(find.text('Usia 31 bulan'), findsOneWidget);
+    expect(find.text(_expectedAgeText('2023-10-01')), findsOneWidget);
     expect(find.text('Terakhir: 10.2 kg / 84.5 cm'), findsOneWidget);
-    expect(find.text('Sudah diukur sesi ini'), findsOneWidget);
+    expect(find.text('Sudah diukur'), findsWidgets);
 
     await tester.tap(find.text('Raka Pratama'));
     await tester.pumpAndSettle();
@@ -587,7 +637,7 @@ void main() {
 
     await tester.tap(find.text('Raka Pratama').first);
     await tester.pumpAndSettle();
-    expect(find.text('Detail rujukan'), findsOneWidget);
+    expect(find.text('Detail Rujukan'), findsOneWidget);
 
     await tester.ensureVisible(
       find.byKey(const Key('validateReferralDetailButton')),
@@ -596,7 +646,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bidan.validatedReferralId, 31);
-    expect(find.text('Validasi tersimpan'), findsOneWidget);
+    expect(find.text('Validasi tersimpan'), findsWidgets);
   });
 
   testWidgets('Bidan rujukan dan PMT menampilkan konteks operasional', (
@@ -610,7 +660,7 @@ void main() {
 
     await tester.tap(find.text('Rujukan').last);
     await tester.pumpAndSettle();
-    expect(find.text('Usia 31 bulan'), findsOneWidget);
+    expect(find.text(_expectedAgeText('2023-10-01')), findsOneWidget);
     expect(find.text('BB/TB: 10.2 kg / 84.5 cm'), findsOneWidget);
 
     await tester.tap(find.text('Raka Pratama').first);
@@ -678,6 +728,53 @@ void main() {
       materialApp.theme?.textTheme.headlineSmall?.fontWeight,
       FontWeight.w900,
     );
+  });
+
+  testWidgets('Kader bisa edit profil balita dari bottom sheet aksi balita', (
+    tester,
+  ) async {
+    final fakeKader = FakeKaderRepository();
+    await tester.pumpWidget(_app(kader: fakeKader));
+    await tester.pumpAndSettle();
+    await _submitLogin(tester);
+
+    // Buka tab Balita
+    await tester.tap(find.text('Balita').last);
+    await tester.pumpAndSettle();
+
+    // Tap child row to open bottom sheet
+    await tester.tap(find.text('Raka Pratama'));
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet is shown with the child details
+    expect(find.text('Aksi balita'), findsOneWidget);
+    expect(find.text('Raka Pratama | Ibu: Wulan'), findsOneWidget);
+
+    // Tap "Edit profil balita"
+    await tester.ensureVisible(find.byKey(const Key('editChildProfileButton')));
+    await tester.tap(find.byKey(const Key('editChildProfileButton')));
+    await tester.pumpAndSettle();
+
+    // Verify _EditBalitaPage is pushed
+    expect(find.text('Edit Profil Balita'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Raka Pratama'), findsOneWidget);
+
+    // Change baby name
+    await tester.enterText(find.byKey(const Key('editChildNameField')), 'Raka Pratama Baru');
+    await tester.enterText(find.byKey(const Key('editAddressField')), 'Alamat Baru');
+    await tester.enterText(find.byKey(const Key('editIncomeField')), '5000000');
+    await tester.enterText(find.byKey(const Key('editFamilyCountField')), '4');
+
+    // Submit form
+    await tester.drag(find.byType(ListView).last, const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('editSaveBalitaButton')));
+    await tester.tap(find.byKey(const Key('editSaveBalitaButton')));
+    await tester.pumpAndSettle();
+
+    // Verify popped back and dashboard refreshed
+    expect(find.text('Edit Profil Balita'), findsNothing);
+    expect(fakeKader.createdChildName, 'Raka Pratama Baru');
   });
 }
 
@@ -768,6 +865,7 @@ class FakeAuthRepository implements AuthRepository {
 }
 
 class FakeKaderRepository implements KaderRepository {
+  bool startMeasured = true;
   String? measurementError;
   bool predictionFails = false;
   double? savedWeight;
@@ -867,12 +965,17 @@ class FakeKaderRepository implements KaderRepository {
 
   @override
   Future<List<ScreeningItem>> screening(int sessionId) async {
+    if (!startMeasured && savedWeight == null) {
+      return [];
+    }
     return [
       ScreeningItem(
         id: 22,
         namaBalita: 'Raka Pratama',
         predictionStatus: predictionFails ? 'gagal' : 'selesai',
         riskLevel: predictionFails ? null : 'sedang',
+        continuityLabel: 'Tren perlu perhatian',
+        continuityMessage: 'Pertumbuhan terakhir melambat. Pantau ulang dan beri edukasi sebelum jadwal berikutnya.',
       ),
     ];
   }
@@ -896,6 +999,26 @@ class FakeKaderRepository implements KaderRepository {
   @override
   Future<void> markNotificationRead(int id) async {
     readNotificationId = id;
+  }
+
+  @override
+  Future<Balita> updateBalita(int id, CreateBalitaRequest request) async {
+    createdChildName = request.namaBalita;
+    createdGender = request.jenisKelamin;
+    createdPosyanduId = request.posyanduId;
+    return Balita(
+      id: id,
+      namaBalita: request.namaBalita,
+      namaIbu: request.namaIbu,
+      tanggalLahir: request.tanggalLahir,
+      jenisKelamin: request.jenisKelamin,
+      nikBalita: request.nikBalita,
+      nikIbu: request.nikIbu,
+      alamat: request.alamat,
+      penghasilan: request.penghasilan,
+      jumlahKeluarga: request.jumlahKeluarga,
+      posyanduId: request.posyanduId,
+    );
   }
 }
 

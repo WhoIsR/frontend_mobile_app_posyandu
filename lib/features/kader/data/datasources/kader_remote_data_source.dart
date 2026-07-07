@@ -44,6 +44,29 @@ class KaderRemoteDataSource {
     return BalitaModel.fromJson(json);
   }
 
+  Future<BalitaModel> updateBalita(int id, CreateBalitaRequest request) async {
+    final json = await _apiClient.putJson(
+      '/balita/$id',
+      body: {
+        'nama_balita': request.namaBalita,
+        'nik_balita': request.nikBalita?.trim().isNotEmpty ?? false
+            ? request.nikBalita!.trim()
+            : null,
+        'tanggal_lahir': request.tanggalLahir,
+        'jenis_kelamin': request.jenisKelamin,
+        'nama_ibu': request.namaIbu,
+        'nik_ibu': request.nikIbu?.trim().isNotEmpty ?? false
+            ? request.nikIbu!.trim()
+            : null,
+        'alamat': request.alamat,
+        'penghasilan': request.penghasilan,
+        'jumlah_keluarga': request.jumlahKeluarga,
+        'posyandu_id': request.posyanduId,
+      },
+    );
+    return BalitaModel.fromJson(json);
+  }
+
   Future<MeasurementResultModel> saveMeasurement({
     required int sessionId,
     required int childId,

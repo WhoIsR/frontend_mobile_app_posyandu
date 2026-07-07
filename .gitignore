@@ -48,3 +48,11 @@ app.*.map.json
 
 # Local emulator QA evidence
 /qa/
+
+# Local Firebase/generated files
+android/app/firebase-service-account.json
+android/app/google-services.json
+android/build/
+firebase.json
+devtools_options.yaml
+scratch/

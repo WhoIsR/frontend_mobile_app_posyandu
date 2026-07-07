@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
@@ -5,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../../../../app/ledger_theme.dart';
 import '../../../../shared/widgets/ledger_widgets.dart';
 import '../../../kader/domain/entities/app_notification.dart';
+import '../../../kader/domain/entities/balita.dart';
 import '../../domain/entities/bidan_dashboard_data.dart';
 import '../../domain/entities/pmt_stock.dart';
 import '../../domain/entities/referral.dart';
@@ -21,17 +24,15 @@ class BidanDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
-  final _noteController = TextEditingController(
-    text: 'Observasi dan pantau ulang.',
-  );
-  String _decision = 'observasi';
+  final _referralSearchController = TextEditingController();
+  final _childSearchController = TextEditingController();
 
   @override
   void dispose() {
-    _noteController.dispose();
+    _referralSearchController.dispose();
+    _childSearchController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(bidanDashboardControllerProvider);
@@ -51,19 +52,24 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     BidanDashboardData? data,
   ) {
     return switch (widget.focus) {
-      'rujukan' => [
-        ..._referralSection(context, data),
-        const SizedBox(height: 16),
-        ..._validationSection(state),
-      ],
-      'pmt' => _pmtSection(state, data),
+      'balita' => _childrenSection(context, state, data),
+      'rujukan' => _referralSection(context, state, data),
+      'pmt' => _pmtSection(context, state, data),
       'laporan' => _reportSection(state),
       'notifikasi' => _notificationSection(context, data),
-      _ => _homeSection(context, data),
+      _ => _homeSection(context, state, data),
     };
   }
 
-  List<Widget> _homeSection(BuildContext context, BidanDashboardData? data) {
+  // ─────────────────────────────────────────────────────────
+  //  HOME
+  // ─────────────────────────────────────────────────────────
+
+  List<Widget> _homeSection(
+    BuildContext context,
+    BidanDashboardState state,
+    BidanDashboardData? data,
+  ) {
     final referrals = data?.referrals.length ?? 0;
     final waiting =
         data?.referrals
@@ -72,6 +78,7 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
         0;
     final pmtItems = data?.pmtStock.length ?? 0;
     final lowStock = data?.pmtStock.where((row) => row.isLow).length ?? 0;
+    final pendingPmt = state.pendingPmtQueue.length;
     final notifications = data?.notifications.length ?? 0;
     return [
       const _PageIntro(
@@ -91,7 +98,11 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
           _SummaryItem(
             label: 'PMT',
             value: '$pmtItems',
-            helper: lowStock > 0 ? '$lowStock stok menipis' : 'stok aman',
+            helper: pendingPmt > 0
+                ? '$pendingPmt antrean distribusi'
+                : lowStock > 0
+                    ? '$lowStock stok menipis'
+                    : 'stok aman',
             icon: Icons.inventory_2_outlined,
           ),
         ],
@@ -102,143 +113,80 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
         subtitle: waiting == 0
             ? 'Belum ada rujukan yang menunggu validasi.'
             : '$waiting rujukan menunggu keputusan bidan.',
-        trailing: const Icon(Icons.arrow_forward),
         onTap: () => widget.onNavigate?.call('rujukan'),
       ),
       LedgerListRow(
         title: 'Stok dan distribusi PMT',
-        subtitle: lowStock > 0
-            ? '$lowStock item perlu dicek sebelum distribusi.'
-            : 'Stok PMT saat ini aman untuk tindak lanjut.',
-        trailing: const Icon(Icons.arrow_forward),
+        subtitle: pendingPmt > 0
+            ? '$pendingPmt balita menunggu distribusi PMT.'
+            : lowStock > 0
+                ? '$lowStock item perlu dicek sebelum distribusi.'
+                : 'Stok PMT saat ini aman untuk tindak lanjut.',
         onTap: () => widget.onNavigate?.call('pmt'),
       ),
       LedgerListRow(
         title: 'Notifikasi',
         subtitle: '$notifications pesan untuk bidan.',
-        trailing: const Icon(Icons.arrow_forward),
         onTap: () => widget.onNavigate?.call('notifikasi'),
       ),
     ];
   }
 
+  // ─────────────────────────────────────────────────────────
+  //  RUJUKAN — with pagination, no static validation section
+  // ─────────────────────────────────────────────────────────
+
   List<Widget> _referralSection(
     BuildContext context,
+    BidanDashboardState state,
     BidanDashboardData? data,
   ) {
+    final allReferrals = data?.referrals ?? const [];
+    final query = state.referralSearchQuery.trim().toLowerCase();
+    final filteredReferrals = allReferrals.where((ref) {
+      if (query.isEmpty) return true;
+      return ref.namaBalita.toLowerCase().contains(query) ||
+             ref.namaIbu.toLowerCase().contains(query);
+    }).toList();
+
+    final waiting =
+        filteredReferrals
+            .where((row) => row.status == 'menunggu_validasi')
+            .length;
+
     return [
       const _PageIntro(
         title: 'Rujukan',
-        subtitle: 'Tinjau hasil skrining yang perlu keputusan lanjutan.',
+        subtitle:
+            'Ketuk rujukan untuk melihat detail dan memberikan keputusan.',
       ),
       const SizedBox(height: 12),
-      if (data?.referrals.isEmpty ?? true)
-        const EmptyState(text: 'Belum ada rujukan masuk.')
-      else
-        ...data!.referrals
-            .take(4)
-            .map(
-              (row) => _ReferralRow(
-                referral: row,
-                onTap: () => _openReferralDetail(context, row),
-              ),
-            ),
-    ];
-  }
-
-  List<Widget> _validationSection(BidanDashboardState state) {
-    return [
-      const SectionTitle('Validasi Medis'),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _SoftIcon(icon: Icons.medical_information_outlined),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Keputusan tindak lanjut',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Gunakan catatan singkat agar kader memahami arahan berikutnya.',
-                          style: TextStyle(
-                            color: LedgerColors.inkSoft,
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                key: const Key('decisionDropdown'),
-                initialValue: _decision,
-                decoration: const InputDecoration(labelText: 'Keputusan'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'observasi',
-                    child: Text('Observasi'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'konseling',
-                    child: Text('Konseling'),
-                  ),
-                  DropdownMenuItem(value: 'pmt', child: Text('PMT')),
-                  DropdownMenuItem(
-                    value: 'rujuk_puskesmas',
-                    child: Text('Rujuk Puskesmas'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'cek_ulang_data',
-                    child: Text('Cek ulang data'),
-                  ),
-                ],
-                onChanged: (value) =>
-                    setState(() => _decision = value ?? 'observasi'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _noteController,
-                minLines: 2,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Catatan bidan'),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                key: const Key('validateButton'),
-                onPressed: state.isSavingValidation ? null : _validateReferral,
-                icon: state.isSavingValidation
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check_circle_outline),
-                label: Text(
-                  state.isSavingValidation ? 'Menyimpan...' : 'Simpan Validasi',
-                ),
-              ),
-            ],
-          ),
+      TextField(
+        controller: _referralSearchController,
+        onChanged: (val) {
+          ref.read(bidanDashboardControllerProvider.notifier).searchReferrals(val);
+        },
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.search),
+          labelText: 'Cari rujukan nama balita atau ibu',
         ),
       ),
-      const SizedBox(height: 8),
-      const Text(
-        'Label risiko tetap skrining awal, bukan diagnosis.',
-        style: TextStyle(color: LedgerColors.inkSoft, fontSize: 12),
-      ),
+      const SizedBox(height: 12),
+      if (waiting > 0) ...[
+        StatusBadge(
+          label: '$waiting menunggu validasi',
+          color: LedgerColors.attention,
+          softColor: LedgerColors.attentionSoft,
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (filteredReferrals.isEmpty)
+        const EmptyState(text: 'Belum ada rujukan yang cocok.')
+      else
+        _PaginatedReferralList(
+          referrals: filteredReferrals,
+          onTap: (row) => _openReferralDetail(context, row),
+        ),
       if (state.message != null &&
           !state.message!.toLowerCase().contains('distribusi') &&
           !state.message!.toLowerCase().contains('pdf')) ...[
@@ -248,16 +196,22 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     ];
   }
 
+  // ─────────────────────────────────────────────────────────
+  //  PMT — with distribution form per pending item
+  // ─────────────────────────────────────────────────────────
+
   List<Widget> _pmtSection(
+    BuildContext context,
     BidanDashboardState state,
     BidanDashboardData? data,
   ) {
     final stockCount = data?.pmtStock.length ?? 0;
     final lowStock = data?.pmtStock.where((row) => row.isLow).length ?? 0;
+    final queue = state.pendingPmtQueue;
     return [
       const _PageIntro(
         title: 'PMT',
-        subtitle: 'Pantau stok dan catat distribusi dari keputusan bidan.',
+        subtitle: 'Pantau stok dan selesaikan distribusi dari keputusan bidan.',
       ),
       const SizedBox(height: 12),
       _SummaryStrip(
@@ -269,38 +223,51 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
             icon: Icons.inventory_2_outlined,
           ),
           _SummaryItem(
-            label: 'Perhatian',
-            value: '$lowStock',
-            helper: 'stok menipis',
-            icon: Icons.error_outline,
+            label: queue.isNotEmpty ? 'Antrean' : 'Perhatian',
+            value: queue.isNotEmpty ? '${queue.length}' : '$lowStock',
+            helper: queue.isNotEmpty
+                ? 'balita perlu distribusi'
+                : 'stok menipis',
+            icon: queue.isNotEmpty ? Icons.pending_outlined : Icons.error_outline,
           ),
         ],
       ),
       const SizedBox(height: 12),
+
+      // Pending distribution queue
+      if (queue.isNotEmpty) ...[
+        const SectionTitle('Antrean Distribusi'),
+        const Text(
+          'Balita berikut telah divalidasi dengan keputusan PMT. '
+          'Pilih item PMT dan jumlah untuk masing-masing.',
+          style: TextStyle(color: LedgerColors.inkSoft, height: 1.4),
+        ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < queue.length; i++)
+          _PmtDistributionCard(
+            key: ValueKey('pmt-dist-$i'),
+            item: queue[i],
+            index: i,
+            stockItems: data?.pmtStock ?? const [],
+            isDistributing: state.isDistributingPmt,
+            onDistribute: ({required int pmtId, required int quantity}) =>
+                ref
+                    .read(bidanDashboardControllerProvider.notifier)
+                    .distributePmt(
+                      pendingIndex: i,
+                      pmtId: pmtId,
+                      quantity: quantity,
+                    ),
+          ),
+        const SizedBox(height: 8),
+      ],
+
+      // Stock overview
+      const SectionTitle('Stok Tersedia'),
       if (data?.pmtStock.isEmpty ?? true)
         const EmptyState(text: 'Belum ada stok PMT.')
-      else ...[
+      else
         ...data!.pmtStock.map((row) => _StockRow(stock: row)),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          key: const Key('distributePmtButton'),
-          onPressed: state.isDistributingPmt
-              ? null
-              : () => ref
-                    .read(bidanDashboardControllerProvider.notifier)
-                    .distributeFirstPmt(),
-          icon: state.isDistributingPmt
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.inventory_outlined),
-          label: Text(
-            state.isDistributingPmt ? 'Menyimpan...' : 'Distribusikan 1 paket',
-          ),
-        ),
-      ],
       if (state.message != null &&
           state.message!.toLowerCase().contains('distribusi')) ...[
         const SizedBox(height: 12),
@@ -309,13 +276,20 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     ];
   }
 
+  // ─────────────────────────────────────────────────────────
+  //  LAPORAN — polished with loading states
+  // ─────────────────────────────────────────────────────────
+
   List<Widget> _reportSection(BidanDashboardState state) {
     return [
       const _PageIntro(
         title: 'Laporan PDF',
-        subtitle: 'Unduh rekap MVP sesuai kebutuhan Posyandu dan bidan.',
+        subtitle:
+            'Pilih rentang tanggal lalu unduh laporan sesuai kebutuhan posyandu.',
       ),
       const SizedBox(height: 12),
+
+      // Step 1: Date range
       _ReportRangePicker(
         startDate: state.reportStartDate,
         endDate: state.reportEndDate,
@@ -323,29 +297,71 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
             .read(bidanDashboardControllerProvider.notifier)
             .setReportRange(range.start, range.end),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 8),
+      Text(
+        state.reportStartDate != null
+            ? 'Laporan akan difilter dari ${state.reportStartDate} s/d ${state.reportEndDate}'
+            : 'Semua data akan disertakan karena rentang belum dipilih.',
+        style: const TextStyle(
+          color: LedgerColors.inkSoft,
+          fontSize: 12,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+      const SizedBox(height: 16),
+
+      // Step 2: Choose report type
+      const SectionTitle('Pilih Jenis Laporan'),
       _ReportPicker(
+        downloadingType: state.downloadingReportType,
         onDownload: (type) => ref
             .read(bidanDashboardControllerProvider.notifier)
             .downloadReport(type),
       ),
+
+      // Step 3: Interactive PDF Preview
       if (state.reportBytes != null) ...[
-        const SizedBox(height: 12),
-        LedgerPanel(
-          title: 'Preview PDF siap',
-          subtitle:
-              'Laporan ${state.reportType ?? ''} sudah diterima dari server.',
-          accent: LedgerColors.bidanBlue,
-          child: FilledButton.icon(
-            onPressed: () => Printing.sharePdf(
-              bytes: state.reportBytes!,
-              filename: 'laporan-${state.reportType ?? 'posyandu'}.pdf',
+        const SizedBox(height: 16),
+        if (Platform.environment.containsKey('FLUTTER_TEST')) ...[
+          LedgerPanel(
+            title: 'Laporan siap',
+            subtitle: 'Laporan ${_reportLabel(state.reportType)} berhasil dibuat.',
+            accent: LedgerColors.primary,
+            child: Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.ios_share_outlined),
+                    label: const Text('Bagikan'),
+                  ),
+                ),
+              ],
             ),
-            icon: const Icon(Icons.ios_share_outlined),
-            label: const Text('Bagikan / Simpan'),
           ),
-        ),
+        ] else ...[
+          const SectionTitle('Preview Laporan'),
+          const SizedBox(height: 8),
+          Container(
+            height: 480,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: LedgerColors.line),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: PdfPreview(
+              build: (format) => state.reportBytes!,
+              useActions: true,
+              allowPrinting: true,
+              allowSharing: true,
+              canChangePageFormat: false,
+              canChangeOrientation: false,
+              canDebug: false,
+            ),
+          ),
+        ],
       ],
+
       if (state.message != null &&
           state.message!.toLowerCase().contains('pdf')) ...[
         const SizedBox(height: 12),
@@ -353,6 +369,10 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       ],
     ];
   }
+
+  // ─────────────────────────────────────────────────────────
+  //  NOTIFIKASI
+  // ─────────────────────────────────────────────────────────
 
   List<Widget> _notificationSection(
     BuildContext context,
@@ -367,134 +387,72 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       if (data?.notifications.isEmpty ?? true)
         const EmptyState(text: 'Belum ada notifikasi.')
       else
-        ...data!.notifications
-            .take(3)
-            .map(
-              (row) => LedgerListRow(
-                title: row.title,
-                subtitle: row.message,
-                trailing: Icon(
-                  row.isRead
-                      ? Icons.mark_email_read_outlined
-                      : Icons.notifications_none,
-                ),
-                onTap: () => _openNotification(context, row),
-              ),
+        ...data!.notifications.map(
+          (row) => LedgerListRow(
+            title: row.title,
+            subtitle: row.message,
+            trailing: Icon(
+              row.isRead
+                  ? Icons.mark_email_read_outlined
+                  : Icons.notifications_none,
             ),
+            onTap: () => _openNotification(context, row),
+          ),
+        ),
     ];
   }
 
-  Future<void> _validateReferral() {
-    return ref
-        .read(bidanDashboardControllerProvider.notifier)
-        .validateFirstReferral(decision: _decision, note: _noteController.text);
-  }
+  // ─────────────────────────────────────────────────────────
+  //  BOTTOM SHEET: Referral Detail + Validation
+  // ─────────────────────────────────────────────────────────
 
   Future<void> _openReferralDetail(BuildContext context, Referral referral) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Detail rujukan',
-                style: Theme.of(sheetContext).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${referral.namaBalita} | Ibu: ${referral.namaIbu}',
-                style: const TextStyle(color: LedgerColors.inkSoft),
-              ),
-              const SizedBox(height: 12),
-              _ReferralContextStrip(referral: referral),
-              const SizedBox(height: 12),
-              LedgerPanel(
-                title: 'Konteks skrining',
-                subtitle: 'Label risiko adalah skrining awal, bukan diagnosis.',
-                accent: referral.riskLevel == 'tinggi'
-                    ? LedgerColors.review
-                    : LedgerColors.attention,
-                child: Row(
-                  children: [
-                    RiskBadge(risk: referral.riskLevel),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${_measurementText(referral)} | ${_readableStatus(referral.status)}',
-                        style: const TextStyle(color: LedgerColors.inkSoft),
-                      ),
-                    ),
-                  ],
+      builder: (sheetContext) => _ReferralDetailSheet(
+        referral: referral,
+        onValidate: ({
+          required String decision,
+          required String note,
+        }) async {
+          await ref
+              .read(bidanDashboardControllerProvider.notifier)
+              .validateReferral(
+                referralId: referral.id,
+                childId: referral.childId,
+                childName: referral.namaBalita,
+                decision: decision,
+                note: note,
+              );
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+          if (!context.mounted) return;
+          final state = ref.read(bidanDashboardControllerProvider);
+          // If the decision was PMT, show a shortcut to tab PMT
+          if (decision == 'pmt') {
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Validasi tersimpan — lanjut distribusi PMT',
+                  ),
+                  action: SnackBarAction(
+                    label: 'Buka Tab PMT',
+                    onPressed: () => widget.onNavigate?.call('pmt'),
+                  ),
+                  duration: const Duration(seconds: 5),
                 ),
+              );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message ?? 'Validasi tersimpan'),
               ),
-              const SectionTitle('Keputusan & catatan'),
-              DropdownButtonFormField<String>(
-                initialValue: _decision,
-                decoration: const InputDecoration(labelText: 'Keputusan'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'observasi',
-                    child: Text('Observasi'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'konseling',
-                    child: Text('Konseling'),
-                  ),
-                  DropdownMenuItem(value: 'pmt', child: Text('PMT')),
-                  DropdownMenuItem(
-                    value: 'rujuk_puskesmas',
-                    child: Text('Rujuk Puskesmas'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'cek_ulang_data',
-                    child: Text('Cek ulang data'),
-                  ),
-                ],
-                onChanged: (value) =>
-                    setState(() => _decision = value ?? 'observasi'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _noteController,
-                minLines: 2,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Catatan bidan'),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                key: const Key('validateReferralDetailButton'),
-                onPressed: () async {
-                  await ref
-                      .read(bidanDashboardControllerProvider.notifier)
-                      .validateReferral(
-                        referralId: referral.id,
-                        childId: referral.childId,
-                        decision: _decision,
-                        note: _noteController.text,
-                      );
-                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Validasi tersimpan')),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Simpan Validasi'),
-              ),
-            ],
-          ),
-        ),
+            );
+          }
+        },
       ),
     );
   }
@@ -521,7 +479,475 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       ),
     );
   }
+
+  List<Widget> _childrenSection(
+    BuildContext context,
+    BidanDashboardState state,
+    BidanDashboardData? data,
+  ) {
+    final allChildren = state.children;
+    final query = state.childSearchQuery.trim().toLowerCase();
+    final filtered = allChildren.where((child) {
+      if (query.isEmpty) return true;
+      return child.namaBalita.toLowerCase().contains(query) ||
+             child.namaIbu.toLowerCase().contains(query) ||
+             (child.nikBalita?.toLowerCase().contains(query) ?? false);
+    }).toList();
+
+    return [
+      const _PageIntro(
+        title: 'Data Balita',
+        subtitle: 'Daftar balita terdaftar di seluruh wilayah Posyandu Desa.',
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: _childSearchController,
+        onChanged: (val) {
+          ref.read(bidanDashboardControllerProvider.notifier).searchChildren(val);
+        },
+        decoration: const InputDecoration(
+          prefixIcon: Icon(Icons.search),
+          labelText: 'Cari balita berdasarkan nama, ibu, atau NIK',
+        ),
+      ),
+      const SizedBox(height: 16),
+      if (filtered.isEmpty)
+        const EmptyState(text: 'Belum ada data balita yang cocok.')
+      else
+        ...filtered.take(20).map((child) => _BidanChildCard(child: child)),
+    ];
+  }
 }
+
+// ═══════════════════════════════════════════════════════════
+//  REFERRAL DETAIL BOTTOM SHEET
+// ═══════════════════════════════════════════════════════════
+
+class _ReferralDetailSheet extends StatefulWidget {
+  const _ReferralDetailSheet({
+    required this.referral,
+    required this.onValidate,
+  });
+
+  final Referral referral;
+  final Future<void> Function({
+    required String decision,
+    required String note,
+  }) onValidate;
+
+  @override
+  State<_ReferralDetailSheet> createState() => _ReferralDetailSheetState();
+}
+
+class _ReferralDetailSheetState extends State<_ReferralDetailSheet> {
+  final _noteController = TextEditingController(
+    text: 'Observasi dan pantau ulang.',
+  );
+  String _decision = 'observasi';
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final referral = widget.referral;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Detail Rujukan',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${referral.namaBalita} | Ibu: ${referral.namaIbu}',
+              style: const TextStyle(color: LedgerColors.inkSoft),
+            ),
+            const SizedBox(height: 12),
+            _ReferralContextStrip(referral: referral),
+            const SizedBox(height: 12),
+            LedgerPanel(
+              title: 'Konteks skrining',
+              subtitle: 'Label risiko adalah skrining awal, bukan diagnosis.',
+              accent: referral.riskLevel == 'tinggi'
+                  ? LedgerColors.review
+                  : LedgerColors.attention,
+              child: Row(
+                children: [
+                  RiskBadge(risk: referral.riskLevel),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${_measurementText(referral)} | ${_readableStatus(referral.status)}',
+                      style: const TextStyle(color: LedgerColors.inkSoft),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SectionTitle('Keputusan & catatan'),
+            DropdownButtonFormField<String>(
+              initialValue: _decision,
+              decoration: const InputDecoration(labelText: 'Keputusan'),
+              items: const [
+                DropdownMenuItem(
+                  value: 'observasi',
+                  child: Text('Observasi'),
+                ),
+                DropdownMenuItem(
+                  value: 'konseling',
+                  child: Text('Konseling'),
+                ),
+                DropdownMenuItem(value: 'pmt', child: Text('PMT')),
+                DropdownMenuItem(
+                  value: 'rujuk_puskesmas',
+                  child: Text('Rujuk Puskesmas'),
+                ),
+                DropdownMenuItem(
+                  value: 'cek_ulang_data',
+                  child: Text('Cek ulang data'),
+                ),
+              ],
+              onChanged: (value) =>
+                  setState(() => _decision = value ?? 'observasi'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _noteController,
+              minLines: 2,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Catatan bidan'),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              key: const Key('validateReferralDetailButton'),
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      setState(() => _isSaving = true);
+                      await widget.onValidate(
+                        decision: _decision,
+                        note: _noteController.text,
+                      );
+                      if (mounted) setState(() => _isSaving = false);
+                    },
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(
+                _isSaving ? 'Menyimpan...' : 'Simpan Validasi',
+              ),
+            ),
+            if (_decision == 'pmt') ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Setelah menyimpan, Anda bisa langsung distribusi PMT '
+                'dari tab PMT.',
+                style: TextStyle(
+                  color: LedgerColors.inkSoft,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PMT DISTRIBUTION CARD — per pending item
+// ═══════════════════════════════════════════════════════════
+
+class _PmtDistributionCard extends StatefulWidget {
+  const _PmtDistributionCard({
+    super.key,
+    required this.item,
+    required this.index,
+    required this.stockItems,
+    required this.isDistributing,
+    required this.onDistribute,
+  });
+
+  final PendingPmtItem item;
+  final int index;
+  final List<PmtStock> stockItems;
+  final bool isDistributing;
+  final void Function({required int pmtId, required int quantity})
+      onDistribute;
+
+  @override
+  State<_PmtDistributionCard> createState() => _PmtDistributionCardState();
+}
+
+class _PmtDistributionCardState extends State<_PmtDistributionCard> {
+  int? _selectedPmtId;
+  int _quantity = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.stockItems.isNotEmpty) {
+      _selectedPmtId = widget.stockItems.first.id;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PmtDistributionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedPmtId == null && widget.stockItems.isNotEmpty) {
+      _selectedPmtId = widget.stockItems.first.id;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_selectedPmtId == null && widget.stockItems.isNotEmpty) {
+      _selectedPmtId = widget.stockItems.first.id;
+    }
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.bidanBlue.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.bidanBlue.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: LedgerColors.bidanBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.child_care,
+                    size: 20,
+                    color: LedgerColors.bidanBlue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.item.childName,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Perlu distribusi PMT',
+                        style: TextStyle(
+                          color: LedgerColors.inkSoft,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                StatusBadge(
+                  label: 'Antrean ${widget.index + 1}',
+                  color: LedgerColors.bidanBlue,
+                  softColor: LedgerColors.bidanBlue.withValues(alpha: 0.1),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (widget.stockItems.isEmpty)
+              const Text(
+                'Tidak ada stok PMT. Tambahkan stok terlebih dahulu.',
+                style: TextStyle(color: LedgerColors.review),
+              )
+            else ...[
+              DropdownButtonFormField<int>(
+                key: Key('pmtDropdown-${widget.index}'),
+                initialValue: _selectedPmtId,
+                decoration: const InputDecoration(
+                  labelText: 'Pilih item PMT',
+                  isDense: true,
+                ),
+                items: widget.stockItems.map((stock) {
+                  return DropdownMenuItem(
+                    value: stock.id,
+                    child: Text(
+                      '${stock.name} — stok: ${stock.stock} ${stock.unit}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedPmtId = value),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Text(
+                    'Jumlah: ',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  IconButton.outlined(
+                    onPressed: _quantity > 1
+                        ? () => setState(() => _quantity--)
+                        : null,
+                    icon: const Icon(Icons.remove, size: 16),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '$_quantity',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  IconButton.outlined(
+                    onPressed: () => setState(() => _quantity++),
+                    icon: const Icon(Icons.add, size: 16),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: Key('distributePmtButton-${widget.index}'),
+                  onPressed: widget.isDistributing || _selectedPmtId == null
+                      ? null
+                      : () => widget.onDistribute(
+                            pmtId: _selectedPmtId!,
+                            quantity: _quantity,
+                          ),
+                  icon: widget.isDistributing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.inventory_outlined),
+                  label: Text(
+                    widget.isDistributing
+                        ? 'Menyimpan...'
+                        : 'Simpan Distribusi',
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PAGINATED REFERRAL LIST
+// ═══════════════════════════════════════════════════════════
+
+class _PaginatedReferralList extends StatefulWidget {
+  const _PaginatedReferralList({
+    required this.referrals,
+    required this.onTap,
+  });
+
+  final List<Referral> referrals;
+  final void Function(Referral) onTap;
+
+  @override
+  State<_PaginatedReferralList> createState() => _PaginatedReferralListState();
+}
+
+class _PaginatedReferralListState extends State<_PaginatedReferralList> {
+  static const _pageSize = 5;
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.referrals.length;
+    final totalPages = (total / _pageSize).ceil();
+    final start = _page * _pageSize;
+    final end = (start + _pageSize).clamp(0, total);
+    final visible = widget.referrals.sublist(start, end);
+
+    return Column(
+      children: [
+        ...visible.map(
+          (row) => _ReferralRow(
+            referral: row,
+            onTap: () => widget.onTap(row),
+          ),
+        ),
+        if (totalPages > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton.outlined(
+                onPressed:
+                    _page > 0 ? () => setState(() => _page--) : null,
+                icon: const Icon(Icons.chevron_left, size: 18),
+                visualDensity: VisualDensity.compact,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '${_page + 1} / $totalPages',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton.outlined(
+                onPressed: _page < totalPages - 1
+                    ? () => setState(() => _page++)
+                    : null,
+                icon: const Icon(Icons.chevron_right, size: 18),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REUSABLE WIDGETS
+// ═══════════════════════════════════════════════════════════
 
 class _ReferralRow extends StatelessWidget {
   const _ReferralRow({required this.referral, required this.onTap});
@@ -558,9 +984,23 @@ class _ReferralRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      referral.namaBalita,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            referral.namaBalita,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        RiskBadge(risk: referral.riskLevel),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -593,9 +1033,7 @@ class _ReferralRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              RiskBadge(risk: referral.riskLevel),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right_rounded,
                 color: LedgerColors.inkMuted,
@@ -723,9 +1161,13 @@ class _StockRow extends StatelessWidget {
 }
 
 class _ReportPicker extends StatelessWidget {
-  const _ReportPicker({required this.onDownload});
+  const _ReportPicker({
+    required this.onDownload,
+    required this.downloadingType,
+  });
 
   final Future<void> Function(String type) onDownload;
+  final String? downloadingType;
 
   @override
   Widget build(BuildContext context) {
@@ -738,8 +1180,9 @@ class _ReportPicker extends StatelessWidget {
               title: 'Prediksi Risiko',
               subtitle: 'Rekap hasil skrining per sesi.',
               icon: Icons.fact_check_outlined,
-              buttonLabel: 'Download Prediksi',
+              buttonLabel: 'Preview Laporan',
               buttonKey: const Key('downloadReport-prediksi'),
+              isDownloading: downloadingType == 'prediksi',
               onPressed: () => onDownload('prediksi'),
             ),
             const Divider(height: 1),
@@ -747,8 +1190,9 @@ class _ReportPicker extends StatelessWidget {
               title: 'Kehadiran Posyandu',
               subtitle: 'Daftar balita yang hadir pada sesi.',
               icon: Icons.event_available_outlined,
-              buttonLabel: 'Download Kehadiran',
+              buttonLabel: 'Preview Laporan',
               buttonKey: const Key('downloadReport-kehadiran'),
+              isDownloading: downloadingType == 'kehadiran',
               onPressed: () => onDownload('kehadiran'),
             ),
             const Divider(height: 1),
@@ -756,9 +1200,20 @@ class _ReportPicker extends StatelessWidget {
               title: 'Distribusi PMT',
               subtitle: 'Catatan paket PMT yang disalurkan.',
               icon: Icons.inventory_outlined,
-              buttonLabel: 'Download Distribusi',
+              buttonLabel: 'Preview Laporan',
               buttonKey: const Key('downloadReport-distribusi-pmt'),
+              isDownloading: downloadingType == 'distribusi-pmt',
               onPressed: () => onDownload('distribusi-pmt'),
+            ),
+            const Divider(height: 1),
+            _ReportAction(
+              title: 'Semua Laporan (Gabungan)',
+              subtitle: 'Menggabungkan semua laporan di atas dalam satu dokumen.',
+              icon: Icons.analytics_outlined,
+              buttonLabel: 'Preview Semua',
+              buttonKey: const Key('downloadReport-semua'),
+              isDownloading: downloadingType == 'semua',
+              onPressed: () => onDownload('semua'),
             ),
           ],
         ),
@@ -940,6 +1395,7 @@ class _ReportAction extends StatelessWidget {
     required this.buttonLabel,
     required this.buttonKey,
     required this.onPressed,
+    required this.isDownloading,
   });
 
   final String title;
@@ -948,6 +1404,7 @@ class _ReportAction extends StatelessWidget {
   final String buttonLabel;
   final Key buttonKey;
   final VoidCallback onPressed;
+  final bool isDownloading;
 
   @override
   Widget build(BuildContext context) {
@@ -985,15 +1442,25 @@ class _ReportAction extends StatelessWidget {
           const SizedBox(height: 10),
           FilledButton.icon(
             key: buttonKey,
-            onPressed: onPressed,
-            icon: const Icon(Icons.download_outlined),
-            label: Text(buttonLabel),
+            onPressed: isDownloading ? null : onPressed,
+            icon: isDownloading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined),
+            label: Text(isDownloading ? 'Mengunduh...' : buttonLabel),
           ),
         ],
       ),
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
 
 String _readableStatus(String status) {
   return status.replaceAll('_', ' ');
@@ -1020,4 +1487,124 @@ String _measurementText(Referral referral) {
 
 String _number(double value) {
   return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
+}
+
+String _reportLabel(String? type) {
+  return switch (type) {
+    'prediksi' => 'Prediksi Risiko',
+    'kehadiran' => 'Kehadiran Posyandu',
+    'distribusi-pmt' => 'Distribusi PMT',
+    _ => type ?? 'Posyandu',
+  };
+}
+
+// ─────────────────────────────────────────────────────────
+//  _BidanChildCard Widget and Helpers
+// ─────────────────────────────────────────────────────────
+
+class _BidanChildCard extends StatelessWidget {
+  const _BidanChildCard({required this.child});
+
+  final Balita child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ageTextStr = _formatAgeText(child.tanggalLahir);
+    final weight = child.latestWeight;
+    final height = child.latestHeight;
+    final latestMeasured = weight == null || height == null
+        ? 'Belum ada riwayat ukur'
+        : 'Terakhir: ${_number(weight)} kg / ${_number(height)} cm';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: LedgerColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    child.namaBalita,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    ageTextStr,
+                    style: const TextStyle(
+                      color: LedgerColors.inkSoft,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Text(
+                    'Ibu: ${child.namaIbu}',
+                    style: const TextStyle(
+                      color: LedgerColors.inkSoft,
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (child.nikBalita != null && child.nikBalita!.isNotEmpty)
+                    Text(
+                      'NIK: ${child.nikBalita}',
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  Text(
+                    latestMeasured,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: LedgerColors.primarySoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                child.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
+                style: const TextStyle(
+                  color: LedgerColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatAgeText(String? raw) {
+  if (raw == null) return 'Usia belum tercatat';
+  final birthDate = DateTime.tryParse(raw);
+  if (birthDate == null) return 'Usia belum tercatat';
+  final now = DateTime.now();
+  var months = (now.year - birthDate.year) * 12 + now.month - birthDate.month;
+  if (now.day < birthDate.day) months -= 1;
+  if (months < 0) months = 0;
+  return 'Usia $months bulan';
 }

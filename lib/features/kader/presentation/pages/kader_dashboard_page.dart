@@ -23,12 +23,14 @@ class KaderDashboardPage extends ConsumerStatefulWidget {
 
 class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
   final _searchController = TextEditingController();
+  final _screeningSearchController = TextEditingController();
   final _weightController = TextEditingController();
   final _heightController = TextEditingController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _screeningSearchController.dispose();
     _weightController.dispose();
     _heightController.dispose();
     super.dispose();
@@ -60,14 +62,14 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     BuildContext context,
     KaderDashboardState state,
     KaderDashboardData? data,
-    Balita? firstChild,
+    Balita? selectedChild,
   ) {
     return switch (widget.focus) {
       'sesi' => _sessionSection(
         data,
         showMeasurement: true,
         state: state,
-        firstChild: firstChild,
+        selectedChild: selectedChild,
       ),
       'balita' => _childrenSection(data, state),
       'skrining' => _screeningSection(data),
@@ -161,7 +163,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     KaderDashboardData? data, {
     required bool showMeasurement,
     KaderDashboardState? state,
-    Balita? firstChild,
+    Balita? selectedChild,
   }) {
     final measured =
         data?.children.where((child) => _measuredToday(child, data)).length ??
@@ -216,10 +218,13 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
           child: nextChild == null
               ? const Text('Cek tab Skrining untuk melihat tindak lanjut.')
               : FilledButton.icon(
-                  onPressed: () => _openChildActions(nextChild!),
-                  icon: const Icon(Icons.straighten_outlined),
-                  label: const Text('Input BB/TB sekarang'),
-                ),
+                   key: const Key('nextQueueChildButton'),
+                   onPressed: () {
+                     ref.read(kaderDashboardControllerProvider.notifier).selectChild(nextChild!);
+                   },
+                   icon: const Icon(Icons.straighten_outlined),
+                   label: const Text('Input BB/TB sekarang'),
+                 ),
         )
       else
         LedgerPanel(
@@ -231,7 +236,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         ),
       if (showMeasurement && state != null) ...[
         const SizedBox(height: 16),
-        ..._measurementSection(state, firstChild),
+        ..._measurementSection(state, selectedChild),
       ],
     ];
   }
@@ -240,6 +245,15 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     KaderDashboardData? data,
     KaderDashboardState state,
   ) {
+    final allChildren = state.data?.children ?? const <Balita>[];
+    final query = _searchController.text.trim().toLowerCase();
+    final filteredChildren = allChildren.where((child) {
+      if (query.isEmpty) return true;
+      return child.namaBalita.toLowerCase().contains(query) ||
+          child.namaIbu.toLowerCase().contains(query) ||
+          (child.nikBalita?.toLowerCase().contains(query) ?? false);
+    }).toList();
+
     return [
       const PageHeader(
         title: 'Register balita',
@@ -251,15 +265,21 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       const SectionTitle('Cari balita'),
       TextField(
         controller: _searchController,
-        onSubmitted: (_) => _search(),
+        onChanged: (val) {
+          setState(() {});
+        },
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.search),
           labelText: 'Cari nama balita, ibu, atau NIK',
-          suffixIcon: IconButton(
-            tooltip: 'Cari',
-            onPressed: _search,
-            icon: const Icon(Icons.arrow_forward),
-          ),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                )
+              : null,
         ),
       ),
       const SizedBox(height: 10),
@@ -276,10 +296,10 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         InlineMessage(text: state.message!, isError: state.isError),
         const SizedBox(height: 12),
       ],
-      if (data?.children.isEmpty ?? true)
+      if (filteredChildren.isEmpty)
         const EmptyState(text: 'Belum ada balita pada hasil pencarian.')
       else
-        ...data!.children
+        ...filteredChildren
             .take(10)
             .map(
               (row) => _ChildRow(
@@ -295,16 +315,22 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
 
   List<Widget> _measurementSection(
     KaderDashboardState state,
-    Balita? firstChild,
+    Balita? selectedChild,
   ) {
     return [
       const SectionTitle('Input pengukuran'),
       _MeasurementPanel(
-        child: firstChild,
+        child: selectedChild,
         weightController: _weightController,
         heightController: _heightController,
         saving: state.isSaving,
         onSave: _saveMeasurement,
+        onEdit: selectedChild == null ? null : () => _openEditProfile(selectedChild),
+        onCancel: () {
+          _weightController.clear();
+          _heightController.clear();
+          ref.read(kaderDashboardControllerProvider.notifier).selectChild(null);
+        },
       ),
       if (state.message != null) ...[
         const SizedBox(height: 12),
@@ -330,6 +356,13 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
   }
 
   List<Widget> _screeningSection(KaderDashboardData? data) {
+    final allScreenings = data?.screening ?? const [];
+    final query = _screeningSearchController.text.trim().toLowerCase();
+    final filtered = allScreenings.where((item) {
+      if (query.isEmpty) return true;
+      return item.namaBalita.toLowerCase().contains(query);
+    }).toList();
+
     return [
       const PageHeader(
         title: 'Hasil Skrining Hari Ini',
@@ -337,11 +370,30 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
             'Gunakan label ini sebagai skrining awal dan tindak lanjut empatik.',
         icon: Icons.fact_check_outlined,
       ),
-      const SizedBox(height: 12),
-      if (data?.screening.isEmpty ?? true)
-        const EmptyState(text: 'Belum ada hasil skrining pada sesi ini.')
+      const SizedBox(height: 16),
+      const SectionTitle('Cari hasil skrining'),
+      TextField(
+        controller: _screeningSearchController,
+        onChanged: (val) => setState(() {}),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search),
+          labelText: 'Cari nama balita atau ibu',
+          suffixIcon: _screeningSearchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _screeningSearchController.clear();
+                    setState(() {});
+                  },
+                )
+              : null,
+        ),
+      ),
+      const SizedBox(height: 16),
+      if (filtered.isEmpty)
+        const EmptyState(text: 'Belum ada hasil skrining yang cocok.')
       else
-        ...data!.screening.map((row) => _ScreeningRow(item: row)),
+        ...filtered.map((row) => _ScreeningRow(item: row)),
     ];
   }
 
@@ -376,12 +428,6 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     ];
   }
 
-  Future<void> _search() {
-    return ref
-        .read(kaderDashboardControllerProvider.notifier)
-        .search(_searchController.text);
-  }
-
   Future<void> _openCreateBalita() async {
     final posyanduId = ref
         .read(kaderDashboardControllerProvider)
@@ -399,6 +445,30 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _CreateBalitaPage(posyanduId: posyanduId),
+      ),
+    );
+  }
+
+  Future<void> _openEditProfile(Balita child) async {
+    final posyanduId = ref
+        .read(kaderDashboardControllerProvider)
+        .data
+        ?.session
+        ?.posyanduId;
+    if (posyanduId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sesi aktif belum tersedia untuk menentukan Posyandu.'),
+        ),
+      );
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _EditBalitaPage(
+          child: child,
+          posyanduId: posyanduId,
+        ),
       ),
     );
   }
@@ -531,19 +601,31 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
                     'Dipakai sebagai pembanding cepat sebelum input hari ini.',
                 trailing: const Icon(Icons.timeline_outlined),
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                  widget.onNavigate?.call('skrining');
-                },
-                icon: const Icon(Icons.fact_check_outlined),
-                label: const Text('Lihat skrining'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.of(sheetContext).pop(),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit profil balita'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        widget.onNavigate?.call('skrining');
+                      },
+                      icon: const Icon(Icons.fact_check_outlined, size: 18),
+                      label: const Text('Lihat skrining'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const Key('editChildProfileButton'),
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        _openEditProfile(child);
+                      },
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Edit profil balita'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -657,9 +739,7 @@ class _ChildRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   StatusBadge(
-                    label: measuredToday
-                        ? 'Sudah diukur sesi ini'
-                        : 'Belum diukur sesi ini',
+                    label: measuredToday ? 'Sudah diukur' : 'Belum diukur',
                     color: measuredToday
                         ? LedgerColors.primary
                         : LedgerColors.attention,
@@ -667,22 +747,36 @@ class _ChildRow extends StatelessWidget {
                         ? LedgerColors.primarySoft
                         : LedgerColors.attentionSoft,
                   ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: onSelect,
-                    icon: const Icon(Icons.straighten_outlined, size: 16),
-                    label: const Text('Ukur'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                  if (!measuredToday) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: LedgerColors.primarySoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.straighten_rounded,
+                            size: 13,
+                            color: LedgerColors.primary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Ukur',
+                            style: TextStyle(
+                              color: LedgerColors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ),
-              const SizedBox(width: 2),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: LedgerColors.inkMuted,
-                size: 22,
               ),
             ],
           ),
@@ -989,19 +1083,460 @@ class _CreateBalitaPageState extends ConsumerState<_CreateBalitaPage> {
   }
 }
 
-class _ScreeningRow extends StatelessWidget {
+class _EditBalitaPage extends ConsumerStatefulWidget {
+  const _EditBalitaPage({required this.child, required this.posyanduId});
+
+  final Balita child;
+  final int posyanduId;
+
+  @override
+  ConsumerState<_EditBalitaPage> createState() => _EditBalitaPageState();
+}
+
+class _EditBalitaPageState extends ConsumerState<_EditBalitaPage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _nikController;
+  late final TextEditingController _birthDateController;
+  late final TextEditingController _motherController;
+  late final TextEditingController _motherNikController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _incomeController;
+  late final TextEditingController _familyController;
+  late String _gender;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.child.namaBalita);
+    _nikController = TextEditingController(text: widget.child.nikBalita ?? '');
+    _birthDateController = TextEditingController(text: widget.child.tanggalLahir ?? '');
+    _motherController = TextEditingController(text: widget.child.namaIbu);
+    _motherNikController = TextEditingController(text: widget.child.nikIbu ?? '');
+    _addressController = TextEditingController(text: widget.child.alamat ?? '');
+    _incomeController = TextEditingController(
+      text: widget.child.penghasilan != null ? widget.child.penghasilan.toString() : '',
+    );
+    _familyController = TextEditingController(
+      text: widget.child.jumlahKeluarga != null ? widget.child.jumlahKeluarga.toString() : '',
+    );
+    _gender = widget.child.jenisKelamin ?? 'L';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nikController.dispose();
+    _birthDateController.dispose();
+    _motherController.dispose();
+    _motherNikController.dispose();
+    _addressController.dispose();
+    _incomeController.dispose();
+    _familyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Edit Profil Balita')),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              const SectionTitle('Data balita'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        key: const Key('editChildNameField'),
+                        controller: _nameController,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama balita',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editChildNikField'),
+                        controller: _nikController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'NIK balita (opsional)',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editBirthDateField'),
+                        controller: _birthDateController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.datetime,
+                        decoration: const InputDecoration(
+                          labelText: 'Tanggal lahir',
+                          hintText: 'YYYY-MM-DD',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        key: const Key('editGenderDropdown'),
+                        initialValue: _gender,
+                        decoration: const InputDecoration(
+                          labelText: 'Jenis kelamin',
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'L',
+                            child: Text('Laki-laki'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'P',
+                            child: Text('Perempuan'),
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            setState(() => _gender = value ?? 'L'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const SectionTitle('Data keluarga'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        key: const Key('editMotherNameField'),
+                        controller: _motherController,
+                        textInputAction: TextInputAction.next,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama ibu',
+                        ),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editMotherNikField'),
+                        controller: _motherNikController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'NIK ibu (opsional)',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editAddressField'),
+                        controller: _addressController,
+                        textInputAction: TextInputAction.next,
+                        minLines: 2,
+                        maxLines: 3,
+                        decoration: const InputDecoration(labelText: 'Alamat'),
+                        validator: _required,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editIncomeField'),
+                        controller: _incomeController,
+                        textInputAction: TextInputAction.next,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Penghasilan keluarga',
+                        ),
+                        validator: _positiveInt,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        key: const Key('editFamilyCountField'),
+                        controller: _familyController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Jumlah keluarga',
+                        ),
+                        validator: _positiveInt,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const Key('editSaveBalitaButton'),
+                onPressed: _saving ? null : _submit,
+                child: Text(_saving ? 'Menyimpan...' : 'Simpan Perubahan'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String? _required(String? value) {
+    return value?.trim().isEmpty ?? true ? 'Wajib diisi.' : null;
+  }
+
+  String? _positiveInt(String? value) {
+    final parsed = int.tryParse(value?.trim() ?? '');
+    return parsed == null || parsed < 1
+        ? 'Isi dengan angka lebih dari 0.'
+        : null;
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await ref
+          .read(kaderDashboardControllerProvider.notifier)
+          .updateBalita(
+            widget.child.id,
+            CreateBalitaRequest(
+              namaBalita: _nameController.text.trim(),
+              nikBalita: _nikController.text.trim(),
+              tanggalLahir: _birthDateController.text.trim(),
+              jenisKelamin: _gender,
+              namaIbu: _motherController.text.trim(),
+              nikIbu: _motherNikController.text.trim(),
+              alamat: _addressController.text.trim(),
+              penghasilan: int.parse(_incomeController.text.trim()),
+              jumlahKeluarga: int.parse(_familyController.text.trim()),
+              posyanduId: widget.posyanduId,
+            ),
+          );
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+}
+
+class _ScreeningRow extends StatefulWidget {
   const _ScreeningRow({required this.item});
 
   final ScreeningItem item;
 
   @override
+  State<_ScreeningRow> createState() => _ScreeningRowState();
+}
+
+class _ScreeningRowState extends State<_ScreeningRow> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final risk = item.predictionStatus == 'gagal' ? 'gagal' : item.riskLevel;
-    return LedgerListRow(
-      title: item.namaBalita,
-      subtitle: RiskCopy.message(risk),
-      trailing: RiskBadge(risk: risk),
+    final risk = widget.item.predictionStatus == 'gagal' ? 'gagal' : widget.item.riskLevel;
+    final riskColorsTuple = riskColors(risk);
+    final primaryColor = riskColorsTuple.$1;
+    final softColor = riskColorsTuple.$2;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: _expanded ? primaryColor : LedgerColors.line,
+          width: _expanded ? 1.5 : 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (_expanded ? primaryColor : LedgerColors.primary).withValues(alpha: _expanded ? 0.08 : 0.04),
+            blurRadius: _expanded ? 20 : 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () {
+              setState(() {
+                _expanded = !_expanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.item.namaBalita,
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            RiskBadge(risk: risk),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          RiskCopy.message(risk),
+                          style: const TextStyle(
+                            color: LedgerColors.inkSoft,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(
+                    _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    color: LedgerColors.inkMuted,
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(color: LedgerColors.line, height: 1),
+                  const SizedBox(height: 12),
+                  if (widget.item.continuityMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: LedgerColors.paper,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: LedgerColors.line),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.timeline_outlined,
+                            color: LedgerColors.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.item.continuityLabel ?? 'Riwayat pengukuran',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: LedgerColors.ink,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.item.continuityMessage!,
+                                  style: const TextStyle(
+                                    color: LedgerColors.inkSoft,
+                                    fontSize: 12,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  const Text(
+                    'Panduan Tindak Lanjut Empatis (Meja 4):',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: LedgerColors.ink,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: softColor.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _counselingIcon(risk),
+                          color: primaryColor,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _counselingText(risk),
+                            style: TextStyle(
+                              color: primaryColor.withValues(alpha: 0.95),
+                              fontSize: 12,
+                              height: 1.45,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  IconData _counselingIcon(String? risk) {
+    return switch (risk) {
+      'rendah' => Icons.check_circle_outline,
+      'sedang' => Icons.info_outline,
+      'tinggi' => Icons.warning_amber_rounded,
+      _ => Icons.help_outline,
+    };
+  }
+
+  String _counselingText(String? risk) {
+    return switch (risk) {
+      'rendah' =>
+        '• Apresiasi Ibu karena telah menjaga tumbuh kembang anak dengan baik.\n• Edukasi untuk mempertahankan pemberian ASI eksklusif / MP-ASI bergizi seimbang.\n• Ingatkan jadwal penimbangan bulan berikutnya agar terpantau konsisten.',
+      'sedang' =>
+        '• Berikan penyuluhan gizi mikro secara empatik (tambahkan protein hewani seperti telur, ikan, susu).\n• Diskusikan pola asuh, sanitasi air bersih, serta kebiasaan cuci tangan pakai sabun.\n• Sarankan untuk melakukan evaluasi kembali dalam 2 minggu bersama Kader.',
+      'tinggi' =>
+        '• Sampaikan dengan tenang bahwa ini skrining awal (bukan vonis stunting).\n• Jelaskan bahwa data telah dirujuk secara otomatis ke Bidan Desa untuk pemeriksaan medis (Meja 5).\n• Dampingi Ibu untuk melakukan kunjungan tindak lanjut ke Puskesmas terdekat.',
+      _ =>
+        '• Pastikan berat badan dan tinggi badan diinput ulang dengan benar.\n• Periksa jaringan internet Kader lalu coba tombol \'Coba Lagi\' di halaman Sesi.\n• Jika tetap gagal, catat manual pada Buku KIA untuk ditinjau Bidan.',
+    };
   }
 }
 
@@ -1012,6 +1547,8 @@ class _MeasurementPanel extends StatelessWidget {
     required this.heightController,
     required this.saving,
     required this.onSave,
+    this.onEdit,
+    this.onCancel,
   });
 
   final Balita? child;
@@ -1019,6 +1556,8 @@ class _MeasurementPanel extends StatelessWidget {
   final TextEditingController heightController;
   final bool saving;
   final VoidCallback onSave;
+  final VoidCallback? onEdit;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -1053,6 +1592,30 @@ class _MeasurementPanel extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (child != null && onEdit != null) ...[
+                  IconButton(
+                    key: const Key('inlineEditProfileButton'),
+                    tooltip: 'Edit profil balita',
+                    onPressed: onEdit,
+                    icon: const Icon(
+                      Icons.edit_note_outlined,
+                      color: LedgerColors.primary,
+                      size: 26,
+                    ),
+                  ),
+                ],
+                if (child != null && onCancel != null) ...[
+                  IconButton(
+                    key: const Key('inlineCancelButton'),
+                    tooltip: 'Kembali ke antrean',
+                    onPressed: onCancel,
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: LedgerColors.inkSoft,
+                      size: 24,
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -1087,11 +1650,46 @@ class _MeasurementPanel extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const Key('saveMeasurementButton'),
-              onPressed: saving ? null : onSave,
-              child: Text(saving ? 'Menyimpan...' : 'Simpan & Lanjut'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                if (onCancel != null) ...[
+                  Expanded(
+                    flex: 1,
+                    child: OutlinedButton(
+                      key: const Key('cancelMeasurementButton'),
+                      onPressed: saving ? null : onCancel,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: LedgerColors.inkSoft,
+                        side: const BorderSide(color: LedgerColors.line),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Batal',
+                        softWrap: false,
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  flex: 1,
+                  child: FilledButton.icon(
+                    key: const Key('saveMeasurementButton'),
+                    onPressed: saving ? null : onSave,
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text(
+                      'Simpan',
+                      softWrap: false,
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

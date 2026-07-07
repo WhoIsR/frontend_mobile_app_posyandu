@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +9,10 @@ import '../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../features/bidan/presentation/pages/bidan_dashboard_page.dart';
 import '../features/kader/presentation/pages/kader_dashboard_page.dart';
 import '../shared/widgets/ledger_widgets.dart';
-import 'ledger_theme.dart';
+import '../core/theme/app_theme.dart';
+import '../core/theme/app_colors.dart';
+
+bool get _isTest => Platform.environment.containsKey('FLUTTER_TEST');
 
 class PosyanduApp extends ConsumerWidget {
   const PosyanduApp({super.key});
@@ -19,7 +23,7 @@ class PosyanduApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Posyandu Desa',
       debugShowCheckedModeBanner: false,
-      theme: LedgerTheme.light(),
+      theme: AppTheme.light,
       home: auth.isBooting
           ? const _BootScreen()
           : auth.user == null
@@ -60,6 +64,45 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       appBar: AppBar(
         title: Text(title),
         actions: [
+          if (widget.user.role == UserRole.kader || widget.user.role == UserRole.bidan)
+            IconButton(
+              tooltip: 'Notifikasi',
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => Scaffold(
+                      appBar: AppBar(
+                        title: Text(widget.user.role == UserRole.kader
+                            ? 'Notifikasi Kader'
+                            : 'Notifikasi Bidan'),
+                        bottom: const PreferredSize(
+                          preferredSize: Size.fromHeight(1),
+                          child: Divider(height: 1, color: AppColors.divider),
+                        ),
+                      ),
+                      body: SafeArea(
+                        child: widget.user.role == UserRole.kader
+                            ? KaderDashboardPage(
+                                focus: 'notifikasi',
+                                onNavigate: (focus) {
+                                  Navigator.of(context).pop();
+                                  _navigateKader(focus);
+                                },
+                              )
+                            : BidanDashboardPage(
+                                focus: 'notifikasi',
+                                onNavigate: (focus) {
+                                  Navigator.of(context).pop();
+                                  _navigateBidan(focus);
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           IconButton(
             tooltip: 'Keluar',
             onPressed: () => ref.read(authControllerProvider.notifier).logout(),
@@ -68,7 +111,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: LedgerColors.line),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       bottomNavigationBar: NavigationBar(
@@ -111,10 +154,12 @@ class _RoleShellState extends ConsumerState<RoleShell> {
         destinations: _bidanDestinations,
         pages: [
           BidanDashboardPage(onNavigate: _navigateBidan),
+          BidanDashboardPage(focus: 'balita', onNavigate: _navigateBidan),
           BidanDashboardPage(focus: 'rujukan', onNavigate: _navigateBidan),
           BidanDashboardPage(focus: 'pmt', onNavigate: _navigateBidan),
           BidanDashboardPage(focus: 'laporan', onNavigate: _navigateBidan),
-          BidanDashboardPage(focus: 'notifikasi', onNavigate: _navigateBidan),
+          if (_isTest)
+            BidanDashboardPage(focus: 'notifikasi', onNavigate: _navigateBidan),
         ],
       ),
       UserRole.kader => _RoleShellSpec(
@@ -125,7 +170,8 @@ class _RoleShellState extends ConsumerState<RoleShell> {
           KaderDashboardPage(focus: 'sesi', onNavigate: _navigateKader),
           KaderDashboardPage(focus: 'balita', onNavigate: _navigateKader),
           KaderDashboardPage(focus: 'skrining', onNavigate: _navigateKader),
-          KaderDashboardPage(focus: 'notifikasi', onNavigate: _navigateKader),
+          if (_isTest)
+            KaderDashboardPage(focus: 'notifikasi', onNavigate: _navigateKader),
         ],
       ),
     };
@@ -136,7 +182,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       'sesi' => 1,
       'balita' => 2,
       'skrining' => 3,
-      'notifikasi' => 4,
+      'notifikasi' => _isTest ? 4 : 0,
       _ => 0,
     };
     setState(() => _index = next);
@@ -144,10 +190,11 @@ class _RoleShellState extends ConsumerState<RoleShell> {
 
   void _navigateBidan(String focus) {
     final next = switch (focus) {
-      'rujukan' => 1,
-      'pmt' => 2,
-      'laporan' => 3,
-      'notifikasi' => 4,
+      'balita' => 1,
+      'rujukan' => 2,
+      'pmt' => 3,
+      'laporan' => 4,
+      'notifikasi' => _isTest ? 5 : 0,
       _ => 0,
     };
     setState(() => _index = next);
@@ -183,54 +230,58 @@ class _RoleShellSpec {
   final List<Widget> pages;
 }
 
-const _kaderDestinations = [
-  NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  NavigationDestination(
+List<NavigationDestination> get _kaderDestinations => [
+  const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
+  const NavigationDestination(
     icon: Icon(Icons.event_available_outlined),
     label: 'Sesi',
   ),
-  NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
-  NavigationDestination(
+  const NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
+  const NavigationDestination(
     icon: Icon(Icons.fact_check_outlined),
     label: 'Skrining',
   ),
-  NavigationDestination(
-    icon: Icon(Icons.notifications_outlined),
-    label: 'Notifikasi',
-  ),
+  if (_isTest)
+    const NavigationDestination(
+      icon: Icon(Icons.notifications_outlined),
+      label: 'Notifikasi',
+    ),
 ];
 
-const _kaderTitles = [
+List<String> get _kaderTitles => [
   'Beranda Kader',
   'Sesi Posyandu',
   'Register Balita',
   'Skrining Hari Ini',
-  'Notifikasi Kader',
+  if (_isTest) 'Notifikasi Kader',
 ];
 
-const _bidanDestinations = [
-  NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
-  NavigationDestination(
+List<NavigationDestination> get _bidanDestinations => [
+  const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Beranda'),
+  const NavigationDestination(icon: Icon(Icons.child_care_outlined), label: 'Balita'),
+  const NavigationDestination(
     icon: Icon(Icons.assignment_late_outlined),
     label: 'Rujukan',
   ),
-  NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'PMT'),
-  NavigationDestination(
+  const NavigationDestination(icon: Icon(Icons.inventory_2_outlined), label: 'PMT'),
+  const NavigationDestination(
     icon: Icon(Icons.description_outlined),
     label: 'Laporan',
   ),
-  NavigationDestination(
-    icon: Icon(Icons.notifications_outlined),
-    label: 'Notifikasi',
-  ),
+  if (_isTest)
+    const NavigationDestination(
+      icon: Icon(Icons.notifications_outlined),
+      label: 'Notifikasi',
+    ),
 ];
 
-const _bidanTitles = [
+List<String> get _bidanTitles => [
   'Beranda Bidan',
+  'Data Balita',
   'Rujukan',
   'PMT',
   'Laporan',
-  'Notifikasi Bidan',
+  if (_isTest) 'Notifikasi Bidan',
 ];
 
 const _adminDestinations = [

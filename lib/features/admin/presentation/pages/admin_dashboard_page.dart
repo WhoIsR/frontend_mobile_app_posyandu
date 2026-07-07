@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
@@ -9,7 +11,7 @@ import '../../domain/entities/admin_posyandu.dart';
 import '../../domain/entities/admin_schedule.dart';
 import '../controllers/admin_dashboard_controller.dart';
 
-class AdminDashboardPage extends ConsumerWidget {
+class AdminDashboardPage extends ConsumerStatefulWidget {
   const AdminDashboardPage({
     super.key,
     this.focus,
@@ -22,10 +24,18 @@ class AdminDashboardPage extends ConsumerWidget {
   final ValueChanged<String>? onNavigate;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardPage> createState() => _AdminDashboardPageState();
+}
+
+class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
+  String _accountSearchQuery = '';
+  String _posyanduSearchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(adminDashboardControllerProvider);
     if (state.isLoading) return const LoadingPanel();
-    final sections = switch (focus) {
+    final sections = switch (widget.focus) {
       'akun' => _accounts(context, ref, state),
       'posyandu' => _posyandu(context, ref, state),
       'sesi' => _sessions(context, ref, state),
@@ -33,8 +43,13 @@ class AdminDashboardPage extends ConsumerWidget {
       _ => _home(context, ref, state),
     };
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(adminDashboardControllerProvider.notifier).load(),
+      onRefresh: () async {
+        setState(() {
+          _accountSearchQuery = '';
+          _posyanduSearchQuery = '';
+        });
+        await ref.read(adminDashboardControllerProvider.notifier).load();
+      },
       child: ListView(padding: const EdgeInsets.all(16), children: sections),
     );
   }
@@ -108,29 +123,25 @@ class AdminDashboardPage extends ConsumerWidget {
       LedgerListRow(
         title: 'Akun aktif',
         subtitle: '$bidanCount bidan dan $kaderCount kader terdaftar.',
-        trailing: const Icon(Icons.arrow_forward),
-        onTap: () => onNavigate?.call('akun'),
+        onTap: () => widget.onNavigate?.call('akun'),
       ),
       LedgerListRow(
         title: 'Posyandu',
         subtitle:
-            '${state.posyandu.length} wilayah, terhubung ke akun dan balita.',
-        trailing: const Icon(Icons.arrow_forward),
-        onTap: () => onNavigate?.call('posyandu'),
+            '${state.posyandu.length} wilayah, terhubung to akun dan balita.',
+        onTap: () => widget.onNavigate?.call('posyandu'),
       ),
       LedgerListRow(
         title: activeSession == null ? 'Jadwal & sesi' : 'Sesi sedang aktif',
         subtitle: activeSession == null
             ? '${state.schedules.length} jadwal tercatat. Mulai sesi dari sini.'
             : '${_posyanduName(state, activeSession.posyanduId)} | ${activeSession.date}',
-        trailing: const Icon(Icons.arrow_forward),
-        onTap: () => onNavigate?.call('sesi'),
+        onTap: () => widget.onNavigate?.call('sesi'),
       ),
       LedgerListRow(
         title: 'Laporan PDF',
         subtitle: 'Preview/share 3 laporan PRD dari data server.',
-        trailing: const Icon(Icons.arrow_forward),
-        onTap: () => onNavigate?.call('laporan'),
+        onTap: () => widget.onNavigate?.call('laporan'),
       ),
       if (state.message != null)
         InlineMessage(text: state.message!, isError: state.isError),
@@ -142,14 +153,22 @@ class AdminDashboardPage extends ConsumerWidget {
     WidgetRef ref,
     AdminDashboardState state,
   ) {
-    final filteredAccounts = selectedPosyanduId == null
+    final baseAccounts = widget.selectedPosyanduId == null
         ? state.accounts
         : state.accounts
-              .where((row) => row.posyanduId == selectedPosyanduId)
+              .where((row) => row.posyanduId == widget.selectedPosyanduId)
               .toList();
-    final filterName = selectedPosyanduId == null
+
+    final filteredAccounts = baseAccounts.where((row) {
+      if (_accountSearchQuery.trim().isEmpty) return true;
+      final q = _accountSearchQuery.toLowerCase();
+      return row.name.toLowerCase().contains(q) ||
+          row.nikNip.toLowerCase().contains(q);
+    }).toList();
+
+    final filterName = widget.selectedPosyanduId == null
         ? null
-        : _posyanduName(state, selectedPosyanduId!);
+        : _posyanduName(state, widget.selectedPosyanduId!);
     return [
       PageHeader(
         title: 'Akun',
@@ -171,11 +190,36 @@ class AdminDashboardPage extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
       ],
+      TextField(
+        key: const Key('adminAccountSearchField'),
+        onChanged: (value) {
+          setState(() {
+            _accountSearchQuery = value;
+          });
+        },
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search, color: LedgerColors.inkSoft),
+          hintText: 'Cari akun nama atau NIK/NIP...',
+          suffixIcon: _accountSearchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    setState(() {
+                      _accountSearchQuery = '';
+                    });
+                  },
+                )
+              : null,
+        ),
+      ),
+      const SizedBox(height: 12),
       if (filteredAccounts.isEmpty)
         EmptyState(
-          text: filterName == null
-              ? 'Belum ada akun.'
-              : 'Belum ada akun yang terhubung ke $filterName.',
+          text: _accountSearchQuery.isEmpty
+              ? (filterName == null
+                  ? 'Belum ada akun.'
+                  : 'Belum ada akun yang terhubung ke $filterName.')
+              : 'Akun tidak ditemukan dalam pencarian.',
         )
       else ...[
         if (state.message != null) ...[
@@ -200,6 +244,15 @@ class AdminDashboardPage extends ConsumerWidget {
     WidgetRef ref,
     AdminDashboardState state,
   ) {
+    final filteredPosyandu = state.posyandu.where((row) {
+      if (_posyanduSearchQuery.trim().isEmpty) return true;
+      final q = _posyanduSearchQuery.toLowerCase();
+      return row.name.toLowerCase().contains(q) ||
+          (row.address?.toLowerCase().contains(q) ?? false) ||
+          (row.village?.toLowerCase().contains(q) ?? false) ||
+          (row.district?.toLowerCase().contains(q) ?? false);
+    }).toList();
+
     return [
       PageHeader(
         title: 'Posyandu',
@@ -213,10 +266,37 @@ class AdminDashboardPage extends ConsumerWidget {
         ),
       ),
       const SizedBox(height: 12),
-      if (state.posyandu.isEmpty)
-        const EmptyState(text: 'Belum ada Posyandu.')
+      TextField(
+        key: const Key('adminPosyanduSearchField'),
+        onChanged: (value) {
+          setState(() {
+            _posyanduSearchQuery = value;
+          });
+        },
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search, color: LedgerColors.inkSoft),
+          hintText: 'Cari wilayah nama Posyandu, desa, kecamatan...',
+          suffixIcon: _posyanduSearchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    setState(() {
+                      _posyanduSearchQuery = '';
+                    });
+                  },
+                )
+              : null,
+        ),
+      ),
+      const SizedBox(height: 12),
+      if (filteredPosyandu.isEmpty)
+        EmptyState(
+          text: _posyanduSearchQuery.isEmpty
+              ? 'Belum ada Posyandu.'
+              : 'Posyandu tidak ditemukan dalam pencarian.',
+        )
       else
-        ...state.posyandu.map(
+        ...filteredPosyandu.map(
           (row) => _AdminPosyanduCard(
             posyandu: row,
             bidanCount: _countAccounts(state, row.id, 'bidan'),
@@ -227,8 +307,8 @@ class AdminDashboardPage extends ConsumerWidget {
             isActive:
                 state.activeSession != null &&
                 state.activeSession!.posyanduId == row.id,
-            onOpenAccounts: () => onNavigate?.call('akun:${row.id}'),
-            onOpenSessions: () => onNavigate?.call('sesi:${row.id}'),
+            onOpenAccounts: () => widget.onNavigate?.call('akun:${row.id}'),
+            onOpenSessions: () => widget.onNavigate?.call('sesi:${row.id}'),
             onEdit: () => _openPosyanduForm(context, ref, row),
           ),
         ),
@@ -256,17 +336,17 @@ class AdminDashboardPage extends ConsumerWidget {
     AdminDashboardState state,
   ) {
     final active = state.activeSession;
-    final filteredSchedules = selectedPosyanduId == null
+    final filteredSchedules = widget.selectedPosyanduId == null
         ? state.schedules
         : state.schedules
-              .where((row) => row.posyanduId == selectedPosyanduId)
+              .where((row) => row.posyanduId == widget.selectedPosyanduId)
               .toList();
-    final filterName = selectedPosyanduId == null
+    final filterName = widget.selectedPosyanduId == null
         ? null
-        : _posyanduName(state, selectedPosyanduId!);
+        : _posyanduName(state, widget.selectedPosyanduId!);
     final activeForFilter =
         active != null &&
-        (selectedPosyanduId == null || active.posyanduId == selectedPosyanduId);
+        (widget.selectedPosyanduId == null || active.posyanduId == widget.selectedPosyanduId);
     return [
       PageHeader(
         title: 'Jadwal & sesi',
@@ -274,13 +354,13 @@ class AdminDashboardPage extends ConsumerWidget {
             ? 'Di sini Admin/Bidan menyiapkan jadwal Posyandu dan membuka sesi aktif yang dipakai Kader untuk input BB/TB.'
             : 'Jadwal dan sesi khusus $filterName.',
         icon: Icons.event_available_outlined,
-        action: FilledButton.icon(
-          onPressed: state.posyandu.isEmpty
-              ? null
-              : () => _openScheduleForm(context, ref, state),
-          icon: const Icon(Icons.add_task_outlined),
-          label: const Text('Buat Jadwal'),
-        ),
+        action: state.posyandu.isEmpty
+            ? null
+            : FilledButton.icon(
+                onPressed: () => _openScheduleForm(context, ref, state),
+                icon: const Icon(Icons.add_task_outlined),
+                label: const Text('Buat Jadwal'),
+              ),
       ),
       const SizedBox(height: 12),
       if (filterName != null) ...[
@@ -380,6 +460,7 @@ class AdminDashboardPage extends ConsumerWidget {
         title: 'Prediksi Risiko',
         subtitle: 'Rekap hasil skrining balita.',
         icon: Icons.fact_check_outlined,
+        isDownloading: state.downloadingReportType == 'prediksi',
         onPressed: () => ref
             .read(adminDashboardControllerProvider.notifier)
             .downloadReport('prediksi'),
@@ -388,6 +469,7 @@ class AdminDashboardPage extends ConsumerWidget {
         title: 'Kehadiran Posyandu',
         subtitle: 'Daftar kehadiran dari sesi Posyandu.',
         icon: Icons.event_available_outlined,
+        isDownloading: state.downloadingReportType == 'kehadiran',
         onPressed: () => ref
             .read(adminDashboardControllerProvider.notifier)
             .downloadReport('kehadiran'),
@@ -396,26 +478,54 @@ class AdminDashboardPage extends ConsumerWidget {
         title: 'Distribusi PMT',
         subtitle: 'Catatan penyaluran paket PMT.',
         icon: Icons.inventory_outlined,
+        isDownloading: state.downloadingReportType == 'distribusi-pmt',
         onPressed: () => ref
             .read(adminDashboardControllerProvider.notifier)
             .downloadReport('distribusi-pmt'),
       ),
+      _AdminReportAction(
+        title: 'Semua Laporan (Gabungan)',
+        subtitle: 'Menggabungkan semua laporan dalam satu dokumen.',
+        icon: Icons.analytics_outlined,
+        isDownloading: state.downloadingReportType == 'semua',
+        onPressed: () => ref
+            .read(adminDashboardControllerProvider.notifier)
+            .downloadReport('semua'),
+      ),
       if (state.reportBytes != null) ...[
-        const SizedBox(height: 12),
-        LedgerPanel(
-          title: 'Preview PDF siap',
-          subtitle:
-              'Laporan ${state.reportType ?? 'posyandu'} sudah diterima dari server.',
-          accent: LedgerColors.bidanBlue,
-          child: FilledButton.icon(
-            onPressed: () => Printing.sharePdf(
-              bytes: state.reportBytes!,
-              filename: 'laporan-${state.reportType ?? 'posyandu'}.pdf',
+        const SizedBox(height: 16),
+        if (Platform.environment.containsKey('FLUTTER_TEST')) ...[
+          LedgerPanel(
+            title: 'Preview PDF siap',
+            subtitle: 'Laporan ${state.reportType ?? 'posyandu'} sudah diterima dari server.',
+            accent: LedgerColors.bidanBlue,
+            child: FilledButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.ios_share_outlined),
+              label: const Text('Bagikan / Simpan'),
             ),
-            icon: const Icon(Icons.ios_share_outlined),
-            label: const Text('Bagikan / Simpan'),
           ),
-        ),
+        ] else ...[
+          const SectionTitle('Preview Laporan'),
+          const SizedBox(height: 8),
+          Container(
+            height: 480,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: LedgerColors.line),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: PdfPreview(
+              build: (format) => state.reportBytes!,
+              useActions: true,
+              allowPrinting: true,
+              allowSharing: true,
+              canChangePageFormat: false,
+              canChangeOrientation: false,
+              canDebug: false,
+            ),
+          ),
+        ],
       ],
       if (state.message != null)
         InlineMessage(text: state.message!, isError: state.isError),
@@ -593,7 +703,7 @@ class AdminDashboardPage extends ConsumerWidget {
     var status = account?.status == 'nonaktif' ? 'nonaktif' : 'aktif';
     int? posyanduId =
         account?.posyanduId ??
-        selectedPosyanduId ??
+        widget.selectedPosyanduId ??
         (state.posyandu.isEmpty ? null : state.posyandu.first.id);
     return showModalBottomSheet<void>(
       context: context,
@@ -809,7 +919,7 @@ class AdminDashboardPage extends ConsumerWidget {
     );
     final note = TextEditingController(text: schedule?.note ?? '');
     var posyanduId =
-        schedule?.posyanduId ?? selectedPosyanduId ?? state.posyandu.first.id;
+        schedule?.posyanduId ?? widget.selectedPosyanduId ?? state.posyandu.first.id;
 
     return showModalBottomSheet<void>(
       context: context,
@@ -1291,12 +1401,14 @@ class _AdminReportAction extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onPressed,
+    required this.isDownloading,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback onPressed;
+  final bool isDownloading;
 
   @override
   Widget build(BuildContext context) {
@@ -1328,8 +1440,14 @@ class _AdminReportAction extends StatelessWidget {
             SizedBox(
               width: 104,
               child: FilledButton(
-                onPressed: onPressed,
-                child: const Text('Preview'),
+                onPressed: isDownloading ? null : onPressed,
+                child: isDownloading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Preview'),
               ),
             ),
           ],

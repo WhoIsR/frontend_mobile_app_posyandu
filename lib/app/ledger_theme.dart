@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_colors.dart';
+
 class LedgerColors {
-  static const paper = Color(0xFFF6FAF5);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceAlt = Color(0xFFEAF7F0);
-  static const line = Color(0xFFD8E5DD);
-  static const ink = Color(0xFF18201B);
-  static const inkSoft = Color(0xFF536159);
-  static const inkMuted = Color(0xFF76857C);
-  static const primary = Color(0xFF197B59);
-  static const primaryDeep = Color(0xFF0E5F49);
-  static const primarySoft = Color(0xFFDDF3E9);
-  static const healthAqua = Color(0xFF1B9AAA);
-  static const healthAquaSoft = Color(0xFFDDF3F5);
-  static const bidanBlue = Color(0xFF376B9B);
-  static const attention = Color(0xFFB46B18);
-  static const attentionSoft = Color(0xFFFFEAC7);
-  static const review = Color(0xFFB64D3B);
-  static const reviewSoft = Color(0xFFFBE0DA);
-  static const glow = Color(0xFFEAFBF3);
+  static const paper = AppColors.background;
+  static const surface = AppColors.surface;
+  static const surfaceAlt = AppColors.background;
+  static const line = AppColors.divider;
+  static const ink = AppColors.textPrimary;
+  static const inkSoft = AppColors.textSecondary;
+  static const inkMuted = AppColors.textLight;
+  static const primary = AppColors.primary;
+  static const primaryDeep = AppColors.primaryDark;
+  static const primarySoft = AppColors.primarySoft;
+  static const healthAqua = AppColors.info;
+  static const healthAquaSoft = AppColors.infoSoft;
+  static const bidanBlue = AppColors.info;
+  static const attention = AppColors.warning;
+  static const attentionSoft = AppColors.warningSoft;
+  static const review = AppColors.error;
+  static const reviewSoft = AppColors.errorSoft;
+  static const glow = AppColors.background;
 }
 
 class LedgerTheme {

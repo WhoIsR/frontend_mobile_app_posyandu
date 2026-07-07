@@ -11,6 +11,7 @@ abstract class KaderRepository {
   Future<PosyanduSession?> activeSession();
   Future<List<Balita>> searchChildren({String search = ''});
   Future<Balita> createBalita(CreateBalitaRequest request);
+  Future<Balita> updateBalita(int id, CreateBalitaRequest request);
   Future<MeasurementResult> saveMeasurement({
     required int sessionId,
     required int childId,

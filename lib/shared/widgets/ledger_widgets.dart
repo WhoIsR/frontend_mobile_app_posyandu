@@ -287,13 +287,13 @@ class LedgerListRow extends StatelessWidget {
     super.key,
     required this.title,
     required this.subtitle,
-    required this.trailing,
+    this.trailing,
     this.onTap,
   });
 
   final String title;
   final String subtitle;
-  final Widget trailing;
+  final Widget? trailing;
   final VoidCallback? onTap;
 
   @override
@@ -341,12 +341,14 @@ class LedgerListRow extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Flexible(
-                flex: 0,
-                child: Align(alignment: Alignment.center, child: trailing),
-              ),
-              if (onTap != null) ...[
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  flex: 0,
+                  child: Align(alignment: Alignment.center, child: trailing!),
+                ),
+              ],
+              if (onTap != null && trailing == null) ...[
                 const SizedBox(width: 6),
                 const Icon(
                   Icons.chevron_right_rounded,
@@ -519,16 +521,44 @@ class LoadingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: const [
-        LedgerPanel(
-          title: 'Memuat data',
-          subtitle: 'Menghubungkan aplikasi dengan server Posyandu.',
-          accent: LedgerColors.primary,
-          child: LinearProgressIndicator(),
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                strokeWidth: 3.5,
+                valueColor: AlwaysStoppedAnimation<Color>(LedgerColors.primary),
+              ),
+            ),
+            SizedBox(height: 18),
+            Text(
+              'Memuat data',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                color: LedgerColors.ink,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Menghubungkan aplikasi dengan server Posyandu.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: LedgerColors.inkSoft,
+                fontSize: 13,
+                height: 1.35,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

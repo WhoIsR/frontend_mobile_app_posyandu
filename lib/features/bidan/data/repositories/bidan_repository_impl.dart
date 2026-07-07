@@ -15,13 +15,15 @@ class BidanRepositoryImpl implements BidanRepository {
 
   @override
   Future<BidanDashboardData> dashboard() async {
-    final referrals = await this.referrals();
-    final pmt = await pmtStock();
-    final notifications = await this.notifications();
+    final results = await Future.wait([
+      referrals(),
+      pmtStock(),
+      notifications(),
+    ]);
     return BidanDashboardData(
-      referrals: referrals,
-      pmtStock: pmt,
-      notifications: notifications,
+      referrals: results[0] as List<Referral>,
+      pmtStock: results[1] as List<PmtStock>,
+      notifications: results[2] as List<AppNotification>,
     );
   }
 

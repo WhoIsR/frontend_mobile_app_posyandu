@@ -57,6 +57,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> login(String nikNip, String password) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
+    ref.read(analyticsServiceProvider).logEvent('login_started', properties: {'nik_nip': nikNip});
     try {
       final session = await ref.read(loginUseCaseProvider)(nikNip, password);
       state = AuthState(
@@ -64,11 +65,18 @@ class AuthController extends Notifier<AuthState> {
         isSubmitting: false,
         user: session.user,
       );
+      ref.read(analyticsServiceProvider).logEvent('login_completed', properties: {
+        'role': session.user.role.name,
+      });
       await ref.read(fcmRegistrationServiceProvider).registerTokenIfAvailable();
     } catch (error) {
+      final err = _errorText(error);
+      ref.read(analyticsServiceProvider).logEvent('login_failed', properties: {
+        'error': err,
+      });
       state = state.copyWith(
         isSubmitting: false,
-        error: _errorText(error),
+        error: err,
         clearUser: true,
       );
     }
