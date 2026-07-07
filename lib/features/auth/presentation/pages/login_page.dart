@@ -162,6 +162,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               key: const Key('nikField'),
                               controller: _nikController,
                               keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.next,
                               style: const TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 14,
@@ -198,6 +199,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               key: const Key('passwordField'),
                               controller: _passwordController,
                               obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _submit(),
                               style: const TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 14,
