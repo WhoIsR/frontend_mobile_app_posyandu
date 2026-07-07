@@ -12,6 +12,7 @@ import '../shared/widgets/ledger_widgets.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_colors.dart';
 import 'widgets/floating_glass_navigation_bar.dart';
+import 'ledger_theme.dart';
 
 bool get _isTest => Platform.environment.containsKey('FLUTTER_TEST');
 
@@ -120,8 +121,8 @@ class _RoleShellState extends ConsumerState<RoleShell> {
               ),
               child: Center(
                 child: Text(
-                  widget.user.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
+                  widget.user.nama.substring(0, 1).toUpperCase(),
+                  style: TextStyle(
                     color: LedgerColors.primary,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
@@ -178,7 +179,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                     ),
                     child: Center(
                       child: Text(
-                        widget.user.name.substring(0, 1).toUpperCase(),
+                        widget.user.nama.substring(0, 1).toUpperCase(),
                         style: const TextStyle(
                           color: LedgerColors.primary,
                           fontWeight: FontWeight.w900,
@@ -191,7 +192,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    widget.user.name,
+                    widget.user.nama,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
@@ -211,7 +212,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                       widget.user.role.name.toUpperCase(),
                       style: const TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w850,
+                        fontWeight: FontWeight.w800,
                         color: LedgerColors.primary,
                         letterSpacing: 0.5,
                       ),

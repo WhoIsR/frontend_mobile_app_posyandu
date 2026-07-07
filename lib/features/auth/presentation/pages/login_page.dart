@@ -262,7 +262,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                             const SizedBox(height: 24),
 
-                            // Submit Button
+                             // Submit Button
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0F766E), // High contrast Teal 700
@@ -284,7 +284,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       ),
                                     )
                                   : const Text(
-                                      'Masuk ke Aplikasi',
+                                      'Masuk',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800,
@@ -298,15 +298,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       const SizedBox(height: 32),
 
                       // Footer support info
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
                           Icon(
                             Icons.support_agent_rounded,
                             color: const Color(0xFF0F766E).withOpacity(0.5),
                             size: 18,
                           ),
-                          const SizedBox(width: 6),
                           const Text(
                             'Butuh bantuan? Hubungi koordinator Posyandu.',
                             style: TextStyle(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme/app_colors.dart';
 
@@ -29,17 +30,19 @@ class LedgerTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: LedgerColors.paper,
       visualDensity: VisualDensity.standard,
-      textTheme: const TextTheme(
-        headlineSmall: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.w900,
-          height: 1.12,
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(
+        const TextTheme(
+          headlineSmall: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            height: 1.12,
+          ),
+          titleLarge: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+          titleMedium: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          bodyLarge: TextStyle(fontSize: 15, height: 1.4),
+          bodyMedium: TextStyle(fontSize: 14, height: 1.35),
+          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
-        titleLarge: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
-        titleMedium: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-        bodyLarge: TextStyle(fontSize: 15, height: 1.4),
-        bodyMedium: TextStyle(fontSize: 14, height: 1.35),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
       ),
       colorScheme:
           ColorScheme.fromSeed(
