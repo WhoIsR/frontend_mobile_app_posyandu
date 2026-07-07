@@ -33,286 +33,285 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF0FDF4), // Calming fresh light-green tint
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Premium Fullscreen Gradient Background
-          Positioned.fill(
+          // Background organic health-themed gradients/shapes
+          Positioned(
+            top: -120,
+            left: -120,
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF041416), // Ultra-Dark luxury background
-                    Color(0xFF072124), 
-                    Color(0xFF0B3338), 
-                  ],
-                ),
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFCCFBF1).withOpacity(0.5), // Soft teal
               ),
             ),
           ),
-          // Elegant Floating Glassmorphism Sphere (Sleek visual detail)
           Positioned(
-            top: -100,
+            bottom: -150,
             right: -100,
             child: Container(
-              width: 300,
-              height: 300,
+              width: 350,
+              height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF26A69A).withValues(alpha: 0.08),
+                color: const Color(0xFFD1FAE5).withOpacity(0.6), // Soft emerald
               ),
             ),
           ),
-          Positioned(
-            bottom: -80,
-            left: -80,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF00BFA5).withValues(alpha: 0.06),
-              ),
-            ),
-          ),
-          // Scrollable Content
+          
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 380),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header
+                      // Healthcare branding header
                       Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.health_and_safety_rounded,
-                                color: Color(0xFF26A69A),
-                                size: 26,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Posyandu Cerdas',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0F766E).withOpacity(0.08),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
                               ),
                             ],
+                            border: Border.all(
+                              color: const Color(0xFFCCFBF1),
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.health_and_safety_rounded,
+                            color: Color(0xFF0F766E), // Calm Teal 700
+                            size: 40,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Pencatatan tumbuh kembang balita secara presisi dan realtime.',
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Posyandu Cerdas',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A), // Slate 900
+                          letterSpacing: -0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Sistem Pemantauan Tumbuh Kembang &\nDeteksi Risiko Stunting Real-Time',
+                        style: TextStyle(
+                          color: Color(0xFF475569), // Slate 600
                           fontSize: 13,
+                          fontWeight: FontWeight.w500,
                           height: 1.4,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Premium Sleek Login Card
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                width: 1,
+                      // Premium Healthcare Login Card
+                      Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: const Color(0xFFE2E8F0), // Slate 200
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0F766E).withOpacity(0.04),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'Masuk Akun',
+                              style: TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20,
+                                letterSpacing: -0.2,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // NIK / NIP Input Field
+                            TextField(
+                              key: const Key('nikField'),
+                              controller: _nikController,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'NIK / NIP',
+                                labelStyle: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.badge_outlined,
+                                  color: Color(0xFF0F766E),
+                                  size: 20,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(color: Color(0xFF0F766E), width: 2),
+                                ),
                               ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                const Text(
-                                  'Masuk ke Dashboard',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
-                                    letterSpacing: 0.3,
-                                  ),
-                                  textAlign: TextAlign.center,
+                            const SizedBox(height: 16),
+
+                            // Password Input Field
+                            TextField(
+                              key: const Key('passwordField'),
+                              controller: _passwordController,
+                              obscureText: true,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'Password',
+                                labelStyle: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const SizedBox(height: 20),
-
-                                // NIK Field
-                                TextField(
-                                  key: const Key('nikField'),
-                                  controller: _nikController,
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                                  decoration: InputDecoration(
-                                    labelText: 'NIK / NIP',
-                                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
-                                    prefixIcon: const Icon(Icons.badge_outlined, color: Colors.white70, size: 20),
-                                    filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.02),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFF26A69A), width: 1.5),
-                                    ),
-                                  ),
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline,
+                                  color: Color(0xFF0F766E),
+                                  size: 20,
                                 ),
-                                const SizedBox(height: 14),
-
-                                // Password Field
-                                TextField(
-                                  key: const Key('passwordField'),
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                                  decoration: InputDecoration(
-                                    labelText: 'Password',
-                                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
-                                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70, size: 20),
-                                    filled: true,
-                                    fillColor: Colors.white.withValues(alpha: 0.02),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(color: Color(0xFF26A69A), width: 1.5),
-                                    ),
-                                  ),
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
                                 ),
-
-                                // Error Message
-                                if (auth.error != null) ...[
-                                  const SizedBox(height: 14),
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.red.withValues(alpha: 0.2),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.error_outline, color: Color(0xFFFF5252), size: 18),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            auth.error!,
-                                            style: const TextStyle(
-                                              color: Color(0xFFFF5252),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-
-                                const SizedBox(height: 20),
-
-                                // Premium Solid Teal Button
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: const Color(0xFF26A69A),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF26A69A).withValues(alpha: 0.25),
-                                        blurRadius: 14,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.transparent,
-                                      shadowColor: Colors.transparent,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                    ),
-                                    onPressed: auth.isSubmitting ? null : _submit,
-                                    child: auth.isSubmitting
-                                        ? const SizedBox(
-                                            height: 18,
-                                            width: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Text(
-                                            'Masuk',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                  ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: const BorderSide(color: Color(0xFF0F766E), width: 2),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+
+                            // Error Message Display
+                            if (auth.error != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEE2E2), // Soft red background
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: const Color(0xFFFCA5A5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 20),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        auth.error!,
+                                        style: const TextStyle(
+                                          color: Color(0xFFB91C1C), // Deep red text
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+
+                            const SizedBox(height: 24),
+
+                            // Submit Button
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0F766E), // High contrast Teal 700
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: auth.isSubmitting ? null : _submit,
+                              child: auth.isSubmitting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Masuk ke Aplikasi',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                      // Elegant Compact Footer
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 6,
-                        runSpacing: 4,
+                      // Footer support info
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.help_outline_rounded,
-                            color: Colors.white.withValues(alpha: 0.3),
-                            size: 16,
+                            Icons.support_agent_rounded,
+                            color: const Color(0xFF0F766E).withOpacity(0.5),
+                            size: 18,
                           ),
-                          Text(
-                            'Butuh bantuan? Hubungi koordinator.',
+                          const SizedBox(width: 6),
+                          const Text(
+                            'Butuh bantuan? Hubungi koordinator Posyandu.',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF475569),
+                              fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
                           ),

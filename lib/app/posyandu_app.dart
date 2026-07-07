@@ -104,10 +104,31 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                 );
               },
             ),
-          IconButton(
-            tooltip: 'Keluar',
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-            icon: const Icon(Icons.logout_outlined),
+          GestureDetector(
+            onTap: () => _showProfileBottomSheet(context, ref),
+            child: Container(
+              margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: LedgerColors.primarySoft,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: LedgerColors.primary.withOpacity(0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  widget.user.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                    color: LedgerColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
         bottom: const PreferredSize(
@@ -126,6 +147,147 @@ class _RoleShellState extends ConsumerState<RoleShell> {
         destinations: shell.destinations,
       ),
       body: SafeArea(child: pages[_index]),
+    );
+  }
+
+  void _showProfileBottomSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                Center(
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: LedgerColors.primarySoft,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: LedgerColors.primary.withOpacity(0.25),
+                        width: 2.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.user.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          color: LedgerColors.primary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    widget.user.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: LedgerColors.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: LedgerColors.primarySoft,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      widget.user.role.name.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w850,
+                        color: LedgerColors.primary,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                const Divider(height: 1, color: AppColors.divider),
+                const SizedBox(height: 16),
+                _profileDetailRow('NIK / NIP', widget.user.nikNip),
+                _profileDetailRow('Posyandu Tugas', 'Posyandu Melati 03'),
+                _profileDetailRow('Status Akun', 'Aktif'),
+                const SizedBox(height: 24),
+                const Divider(height: 1, color: AppColors.divider),
+                const SizedBox(height: 24),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ref.read(authControllerProvider.notifier).logout();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: BorderSide(color: Colors.red.withOpacity(0.5), width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout_outlined, size: 20, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text(
+                        'Keluar dari Akun',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _profileDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: LedgerColors.inkSoft,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: LedgerColors.ink,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
