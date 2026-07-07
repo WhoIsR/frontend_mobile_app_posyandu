@@ -218,13 +218,15 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
           child: nextChild == null
               ? const Text('Cek tab Skrining untuk melihat tindak lanjut.')
               : FilledButton.icon(
-                   key: const Key('nextQueueChildButton'),
-                   onPressed: () {
-                     ref.read(kaderDashboardControllerProvider.notifier).selectChild(nextChild!);
-                   },
-                   icon: const Icon(Icons.straighten_outlined),
-                   label: const Text('Input BB/TB sekarang'),
-                 ),
+                  key: const Key('nextQueueChildButton'),
+                  onPressed: () {
+                    ref
+                        .read(kaderDashboardControllerProvider.notifier)
+                        .selectChild(nextChild!);
+                  },
+                  icon: const Icon(Icons.straighten_outlined),
+                  label: const Text('Input BB/TB sekarang'),
+                ),
         )
       else
         LedgerPanel(
@@ -325,7 +327,9 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         heightController: _heightController,
         saving: state.isSaving,
         onSave: _saveMeasurement,
-        onEdit: selectedChild == null ? null : () => _openEditProfile(selectedChild),
+        onEdit: selectedChild == null
+            ? null
+            : () => _openEditProfile(selectedChild),
         onCancel: () {
           _weightController.clear();
           _heightController.clear();
@@ -465,10 +469,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _EditBalitaPage(
-          child: child,
-          posyanduId: posyanduId,
-        ),
+        builder: (_) => _EditBalitaPage(child: child, posyanduId: posyanduId),
       ),
     );
   }
@@ -750,7 +751,10 @@ class _ChildRow extends StatelessWidget {
                   if (!measuredToday) ...[
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: LedgerColors.primarySoft,
                         borderRadius: BorderRadius.circular(12),
@@ -1111,15 +1115,23 @@ class _EditBalitaPageState extends ConsumerState<_EditBalitaPage> {
     super.initState();
     _nameController = TextEditingController(text: widget.child.namaBalita);
     _nikController = TextEditingController(text: widget.child.nikBalita ?? '');
-    _birthDateController = TextEditingController(text: widget.child.tanggalLahir ?? '');
+    _birthDateController = TextEditingController(
+      text: widget.child.tanggalLahir ?? '',
+    );
     _motherController = TextEditingController(text: widget.child.namaIbu);
-    _motherNikController = TextEditingController(text: widget.child.nikIbu ?? '');
+    _motherNikController = TextEditingController(
+      text: widget.child.nikIbu ?? '',
+    );
     _addressController = TextEditingController(text: widget.child.alamat ?? '');
     _incomeController = TextEditingController(
-      text: widget.child.penghasilan != null ? widget.child.penghasilan.toString() : '',
+      text: widget.child.penghasilan != null
+          ? widget.child.penghasilan.toString()
+          : '',
     );
     _familyController = TextEditingController(
-      text: widget.child.jumlahKeluarga != null ? widget.child.jumlahKeluarga.toString() : '',
+      text: widget.child.jumlahKeluarga != null
+          ? widget.child.jumlahKeluarga.toString()
+          : '',
     );
     _gender = widget.child.jenisKelamin ?? 'L';
   }
@@ -1335,10 +1347,16 @@ class _ScreeningRowState extends State<_ScreeningRow> {
 
   @override
   Widget build(BuildContext context) {
-    final risk = widget.item.predictionStatus == 'gagal' ? 'gagal' : widget.item.riskLevel;
+    final risk = widget.item.predictionStatus == 'gagal'
+        ? 'gagal'
+        : widget.item.riskLevel;
     final riskColorsTuple = riskColors(risk);
     final primaryColor = riskColorsTuple.$1;
     final softColor = riskColorsTuple.$2;
+    final historyLabel = widget.item.continuityLabel ?? 'Riwayat pengukuran';
+    final historyMessage =
+        widget.item.continuityMessage ??
+        'Riwayat belum cukup untuk membaca tren. Gunakan hasil ini sebagai skrining awal, lalu bandingkan dengan pengukuran berikutnya.';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -1353,7 +1371,9 @@ class _ScreeningRowState extends State<_ScreeningRow> {
         ),
         boxShadow: [
           BoxShadow(
-            color: (_expanded ? primaryColor : LedgerColors.primary).withValues(alpha: _expanded ? 0.08 : 0.04),
+            color: (_expanded ? primaryColor : LedgerColors.primary).withValues(
+              alpha: _expanded ? 0.08 : 0.04,
+            ),
             blurRadius: _expanded ? 20 : 12,
             offset: const Offset(0, 4),
           ),
@@ -1384,7 +1404,10 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                             Expanded(
                               child: Text(
                                 widget.item.namaBalita,
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1407,7 +1430,9 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                   ),
                   const SizedBox(width: 10),
                   Icon(
-                    _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    _expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
                     color: LedgerColors.inkMuted,
                     size: 22,
                   ),
@@ -1423,52 +1448,50 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                 children: [
                   const Divider(color: LedgerColors.line, height: 1),
                   const SizedBox(height: 12),
-                  if (widget.item.continuityMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: LedgerColors.paper,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: LedgerColors.line),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.timeline_outlined,
-                            color: LedgerColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.item.continuityLabel ?? 'Riwayat pengukuran',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    color: LedgerColors.ink,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.item.continuityMessage!,
-                                  style: const TextStyle(
-                                    color: LedgerColors.inkSoft,
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: LedgerColors.paper,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: LedgerColors.line),
                     ),
-                    const SizedBox(height: 12),
-                  ],
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.timeline_outlined,
+                          color: LedgerColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                historyLabel,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  color: LedgerColors.ink,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                historyMessage,
+                                style: const TextStyle(
+                                  color: LedgerColors.inkSoft,
+                                  fontSize: 12,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   const Text(
                     'Panduan Tindak Lanjut Empatis (Meja 4):',
                     style: TextStyle(
@@ -1483,7 +1506,9 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                     decoration: BoxDecoration(
                       color: softColor.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,

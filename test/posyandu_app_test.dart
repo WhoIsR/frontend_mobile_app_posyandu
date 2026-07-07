@@ -128,7 +128,10 @@ void main() {
     await tester.tap(find.text('Raka Pratama'));
     await tester.pumpAndSettle();
     expect(find.text('Tren perlu perhatian'), findsOneWidget);
-    expect(find.textContaining('Pertumbuhan terakhir melambat'), findsOneWidget);
+    expect(
+      find.textContaining('Pertumbuhan terakhir melambat'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('duplikasi pengukuran menampilkan pesan backend', (tester) async {
@@ -218,6 +221,9 @@ void main() {
     expect(find.text('Cari balita'), findsNothing);
     expect(find.byKey(const Key('saveMeasurementButton')), findsNothing);
     expect(find.text('Validasi selesai'), findsNothing);
+    await tester.tap(find.text('Raka Pratama'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tren perlu perhatian'), findsOneWidget);
 
     await tester.tap(find.text('Notifikasi').last);
     await tester.pumpAndSettle();
@@ -357,9 +363,7 @@ void main() {
     await tester.tap(find.text('PMT').last);
     await tester.pumpAndSettle();
     expect(find.text('Raka Pratama'), findsWidgets);
-    await tester.ensureVisible(
-      find.byKey(const Key('distributePmtButton-0')),
-    );
+    await tester.ensureVisible(find.byKey(const Key('distributePmtButton-0')));
     // Drag up to clear bottom nav overlap
     await tester.drag(find.byType(ListView).last, const Offset(0, -150));
     await tester.pumpAndSettle();
@@ -418,7 +422,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bidan.downloadedReports, ['prediksi']);
-    
+
     // Drag up to reveal bottom preview panel
     await tester.drag(find.byType(ListView).last, const Offset(0, -350));
     await tester.pumpAndSettle();
@@ -760,8 +764,14 @@ void main() {
     expect(find.widgetWithText(TextFormField, 'Raka Pratama'), findsOneWidget);
 
     // Change baby name
-    await tester.enterText(find.byKey(const Key('editChildNameField')), 'Raka Pratama Baru');
-    await tester.enterText(find.byKey(const Key('editAddressField')), 'Alamat Baru');
+    await tester.enterText(
+      find.byKey(const Key('editChildNameField')),
+      'Raka Pratama Baru',
+    );
+    await tester.enterText(
+      find.byKey(const Key('editAddressField')),
+      'Alamat Baru',
+    );
     await tester.enterText(find.byKey(const Key('editIncomeField')), '5000000');
     await tester.enterText(find.byKey(const Key('editFamilyCountField')), '4');
 
@@ -975,7 +985,8 @@ class FakeKaderRepository implements KaderRepository {
         predictionStatus: predictionFails ? 'gagal' : 'selesai',
         riskLevel: predictionFails ? null : 'sedang',
         continuityLabel: 'Tren perlu perhatian',
-        continuityMessage: 'Pertumbuhan terakhir melambat. Pantau ulang dan beri edukasi sebelum jadwal berikutnya.',
+        continuityMessage:
+            'Pertumbuhan terakhir melambat. Pantau ulang dan beri edukasi sebelum jadwal berikutnya.',
       ),
     ];
   }
