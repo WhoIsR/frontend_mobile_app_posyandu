@@ -371,7 +371,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       const PageHeader(
         title: 'Hasil Skrining Hari Ini',
         subtitle:
-            'Gunakan label ini sebagai skrining awal dan tindak lanjut empatik.',
+            'Lihat catatan hari ini, cek riwayat singkat, lalu pilih arahan yang pas.',
         icon: Icons.fact_check_outlined,
       ),
       const SizedBox(height: 16),
@@ -1356,7 +1356,7 @@ class _ScreeningRowState extends State<_ScreeningRow> {
     final historyLabel = widget.item.continuityLabel ?? 'Riwayat pengukuran';
     final historyMessage =
         widget.item.continuityMessage ??
-        'Riwayat belum cukup untuk membaca tren. Gunakan hasil ini sebagai skrining awal, lalu bandingkan dengan pengukuran berikutnya.';
+        'Riwayatnya belum cukup untuk membaca tren. Catatan hari ini tetap tersimpan dan bisa jadi pembanding pada kunjungan berikutnya.';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -1493,7 +1493,7 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Panduan Tindak Lanjut Empatis (Meja 4):',
+                    'Arahan untuk kader:',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       color: LedgerColors.ink,
@@ -1554,13 +1554,13 @@ class _ScreeningRowState extends State<_ScreeningRow> {
   String _counselingText(String? risk) {
     return switch (risk) {
       'rendah' =>
-        '• Apresiasi Ibu karena telah menjaga tumbuh kembang anak dengan baik.\n• Edukasi untuk mempertahankan pemberian ASI eksklusif / MP-ASI bergizi seimbang.\n• Ingatkan jadwal penimbangan bulan berikutnya agar terpantau konsisten.',
+        '- Beri apresiasi singkat ke ibu.\n- Ingatkan pola makan dan jadwal timbang berikutnya.\n- Catat bila ada keluhan yang perlu dibawa ke bidan.',
       'sedang' =>
-        '• Berikan penyuluhan gizi mikro secara empatik (tambahkan protein hewani seperti telur, ikan, susu).\n• Diskusikan pola asuh, sanitasi air bersih, serta kebiasaan cuci tangan pakai sabun.\n• Sarankan untuk melakukan evaluasi kembali dalam 2 minggu bersama Kader.',
+        '- Ajak ibu cek ulang pola makan harian anak.\n- Sarankan tambahan protein hewani bila memungkinkan.\n- Pantau lagi di jadwal berikutnya atau lebih cepat bila ada keluhan.',
       'tinggi' =>
-        '• Sampaikan dengan tenang bahwa ini skrining awal (bukan vonis stunting).\n• Jelaskan bahwa data telah dirujuk secara otomatis ke Bidan Desa untuk pemeriksaan medis (Meja 5).\n• Dampingi Ibu untuk melakukan kunjungan tindak lanjut ke Puskesmas terdekat.',
+        '- Sampaikan pelan-pelan bahwa hasil ini perlu dicek bidan.\n- Hindari menyebut diagnosis atau membuat keluarga panik.\n- Bantu arahkan ibu ke bidan atau meja layanan berikutnya.',
       _ =>
-        '• Pastikan berat badan dan tinggi badan diinput ulang dengan benar.\n• Periksa jaringan internet Kader lalu coba tombol \'Coba Lagi\' di halaman Sesi.\n• Jika tetap gagal, catat manual pada Buku KIA untuk ditinjau Bidan.',
+        '- Pastikan berat dan tinggi badan sudah benar.\n- Coba ulang saat koneksi lebih stabil.\n- Bila masih gagal, simpan catatan untuk dicek bidan.',
     };
   }
 }

@@ -122,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Perlu perhatian'), findsWidgets);
     expect(
-      find.textContaining('Pertumbuhan anak perlu diperhatikan'),
+      find.textContaining('Ada tanda yang perlu dipantau'),
       findsOneWidget,
     );
     await tester.tap(find.text('Raka Pratama'));

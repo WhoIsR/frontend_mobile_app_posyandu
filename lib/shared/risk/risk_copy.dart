@@ -11,14 +11,15 @@ class RiskCopy {
 
   static String message(String? risk) {
     return switch (risk) {
-      'rendah' => 'Pertumbuhan tercatat dalam risiko rendah.',
+      'rendah' =>
+        'Catatan hari ini terlihat aman. Tetap pantau di jadwal berikutnya.',
       'sedang' =>
-        'Pertumbuhan anak perlu diperhatikan. Data akan ditinjau tenaga kesehatan.',
+        'Ada tanda yang perlu dipantau. Arahkan ibu untuk cek pola makan dan lanjutkan pemantauan.',
       'tinggi' =>
-        'Data perlu ditinjau bidan. Ini skrining awal, bukan diagnosis.',
+        'Perlu dilihat bidan. Sampaikan sebagai hasil pemantauan awal, bukan kesimpulan medis.',
       'gagal' =>
-        'Pengukuran tersimpan. Prediksi dapat dicoba ulang saat koneksi stabil.',
-      _ => 'Pengukuran tersimpan. Prediksi diproses di belakang.',
+        'Pengukuran sudah tersimpan. Coba ulang prediksi saat koneksi lebih stabil.',
+      _ => 'Pengukuran sudah tersimpan. Hasil sedang diproses.',
     };
   }
 }
