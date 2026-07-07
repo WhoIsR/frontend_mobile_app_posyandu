@@ -29,35 +29,33 @@ class FloatingGlassNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determine bottom padding for safe area
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      color: LedgerColors
-          .paper, // Match scaffold background so the floating bar sits nicely
+      color: Colors.transparent, // Completely transparent so it floats on top of body
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: bottomPadding > 0 ? bottomPadding + 8 : 16,
+        left: 28, // Wider side margins so it is a distinct floating pill shape
+        right: 28,
+        bottom: bottomPadding > 0 ? bottomPadding + 12 : 20,
         top: 8,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(32), // Perfect capsule rounded corners
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            height: 72,
+            height: 70,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(24),
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withOpacity(0.6),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
+                  color: const Color(0xFF0F766E).withOpacity(0.08), // Soft teal glow shadow
+                  blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
               ],
@@ -108,12 +106,15 @@ class _NavBarItemState extends State<_NavBarItem>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 250),
     );
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.15,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    ));
     if (widget.isActive) {
       _controller.forward();
     }
@@ -143,15 +144,31 @@ class _NavBarItemState extends State<_NavBarItem>
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        ScaleTransition(
-          scale: _scaleAnimation,
-          child: Icon(
-            widget.isActive ? widget.item.activeIcon : widget.item.icon,
-            size: 24,
-            color: widget.isActive
-                ? LedgerColors.primary
-                : LedgerColors.inkSoft,
-          ),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Floating active capsule shape behind the active icon
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              width: widget.isActive ? 46 : 0,
+              height: widget.isActive ? 28 : 0,
+              decoration: BoxDecoration(
+                color: LedgerColors.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Icon(
+                widget.isActive ? widget.item.activeIcon : widget.item.icon,
+                size: 22,
+                color: widget.isActive
+                    ? LedgerColors.primary
+                    : LedgerColors.inkSoft,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         AnimatedDefaultTextStyle(
@@ -160,22 +177,11 @@ class _NavBarItemState extends State<_NavBarItem>
             color: widget.isActive
                 ? LedgerColors.primary
                 : LedgerColors.inkSoft,
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: -0.2,
           ),
           child: Text(widget.item.label),
-        ),
-        const SizedBox(height: 3),
-        // Active dot indicator
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: widget.isActive ? 4 : 0,
-          height: widget.isActive ? 4 : 0,
-          decoration: const BoxDecoration(
-            color: LedgerColors.primary,
-            shape: BoxShape.circle,
-          ),
         ),
       ],
     );

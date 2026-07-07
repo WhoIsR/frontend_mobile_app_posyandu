@@ -63,6 +63,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
     final title = shell.titles[_index];
     final pages = shell.pages;
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         title: Text(title),
         actions: [
@@ -147,7 +148,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
         }),
         destinations: shell.destinations,
       ),
-      body: SafeArea(child: pages[_index]),
+      body: SafeArea(bottom: false, child: pages[_index]),
     );
   }
 
