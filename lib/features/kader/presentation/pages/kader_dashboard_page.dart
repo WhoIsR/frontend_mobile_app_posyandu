@@ -52,7 +52,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
           ref.read(kaderDashboardControllerProvider.notifier).load(),
       child: ListView(
         key: const Key('kaderList'),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
         children: sections,
       ),
     );
@@ -1390,7 +1390,7 @@ class _ScreeningRowState extends State<_ScreeningRow> {
               });
             },
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
