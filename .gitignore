@@ -48,6 +48,7 @@ app.*.map.json
 
 # Local emulator QA evidence
 /qa/
+/final-apk/
 
 # Local Firebase/generated files
 android/app/firebase-service-account.json
