@@ -8,7 +8,7 @@ class AppColors {
   
   static const secondary = Color(0xFFF59E0B); // Amber 500 (Warnings, Prompts)
   
-  static const background = Color(0xFFF8FAFC); // Slate 50 (Clean, Airy)
+  static const background = Color(0xFFF1F5F9); // Slate 100 (High contrast in sunlight)
   static const surface = Colors.white;
   
   static const textPrimary = Color(0xFF0F172A); // Slate 900

@@ -46,17 +46,17 @@ class FloatingGlassNavigationBar extends StatelessWidget {
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.85),
+              color: Colors.white.withOpacity(0.96), // Solid white base for outdoor visibility
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withOpacity(0.6),
+                color: const Color(0xFF0F766E).withOpacity(0.3), // High-contrast primary outline
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0F766E).withOpacity(0.08), // Soft teal glow shadow
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
+                  color: const Color(0xFF0F172A).withOpacity(0.1), // Stronger shadow for outline definition
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -154,7 +154,7 @@ class _NavBarItemState extends State<_NavBarItem>
               width: widget.isActive ? 46 : 0,
               height: widget.isActive ? 28 : 0,
               decoration: BoxDecoration(
-                color: LedgerColors.primary.withOpacity(0.12),
+                color: LedgerColors.primary.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -165,7 +165,7 @@ class _NavBarItemState extends State<_NavBarItem>
                 size: 22,
                 color: widget.isActive
                     ? LedgerColors.primary
-                    : LedgerColors.inkSoft,
+                    : const Color(0xFF475569), // Darker slate 600 for outdoor legibility
               ),
             ),
           ],
@@ -176,7 +176,7 @@ class _NavBarItemState extends State<_NavBarItem>
           style: TextStyle(
             color: widget.isActive
                 ? LedgerColors.primary
-                : LedgerColors.inkSoft,
+                : const Color(0xFF475569), // Darker slate 600 for outdoor legibility
             fontSize: 10,
             fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: -0.2,
