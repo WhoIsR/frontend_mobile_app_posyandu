@@ -67,7 +67,8 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       appBar: AppBar(
         title: Text(title),
         actions: [
-          if (widget.user.role == UserRole.kader || widget.user.role == UserRole.bidan)
+          if (widget.user.role == UserRole.kader ||
+              widget.user.role == UserRole.bidan)
             IconButton(
               tooltip: 'Notifikasi',
               icon: const Icon(Icons.notifications_outlined),
@@ -76,9 +77,11 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                   MaterialPageRoute(
                     builder: (context) => Scaffold(
                       appBar: AppBar(
-                        title: Text(widget.user.role == UserRole.kader
-                            ? 'Notifikasi Kader'
-                            : 'Notifikasi Bidan'),
+                        title: Text(
+                          widget.user.role == UserRole.kader
+                              ? 'Notifikasi Kader'
+                              : 'Notifikasi Bidan',
+                        ),
                         bottom: const PreferredSize(
                           preferredSize: Size.fromHeight(1),
                           child: Divider(height: 1, color: AppColors.divider),
@@ -116,7 +119,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                 color: LedgerColors.primarySoft,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: LedgerColors.primary.withOpacity(0.2),
+                  color: LedgerColors.primary.withValues(alpha: 0.2),
                   width: 1.5,
                 ),
               ),
@@ -174,7 +177,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                       color: LedgerColors.primarySoft,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: LedgerColors.primary.withOpacity(0.25),
+                        color: LedgerColors.primary.withValues(alpha: 0.25),
                         width: 2.5,
                       ),
                     ),
@@ -204,7 +207,10 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                 const SizedBox(height: 6),
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: LedgerColors.primarySoft,
                       borderRadius: BorderRadius.circular(20),
@@ -236,7 +242,10 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
-                    side: BorderSide(color: Colors.red.withOpacity(0.5), width: 1.5),
+                    side: BorderSide(
+                      color: Colors.red.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

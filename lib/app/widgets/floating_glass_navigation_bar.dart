@@ -32,29 +32,29 @@ class FloatingGlassNavigationBar extends StatelessWidget {
     final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      color: Colors.transparent, // Completely transparent so it floats on top of body
+      color: Colors.transparent,
       padding: EdgeInsets.only(
-        left: 28, // Wider side margins so it is a distinct floating pill shape
+        left: 28,
         right: 28,
         bottom: bottomPadding > 0 ? bottomPadding + 12 : 20,
         top: 8,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(32), // Perfect capsule rounded corners
+        borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.96), // Solid white base for outdoor visibility
+              color: Colors.white.withValues(alpha: 0.96),
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: const Color(0xFF0F766E).withOpacity(0.3), // High-contrast primary outline
+                color: const Color(0xFF0F766E).withValues(alpha: 0.3),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0F172A).withOpacity(0.1), // Stronger shadow for outline definition
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 6),
                 ),
@@ -111,10 +111,7 @@ class _NavBarItemState extends State<_NavBarItem>
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.15,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     if (widget.isActive) {
       _controller.forward();
     }
@@ -147,14 +144,13 @@ class _NavBarItemState extends State<_NavBarItem>
         Stack(
           alignment: Alignment.center,
           children: [
-            // Floating active capsule shape behind the active icon
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               width: widget.isActive ? 46 : 0,
               height: widget.isActive ? 28 : 0,
               decoration: BoxDecoration(
-                color: LedgerColors.primary.withOpacity(0.18),
+                color: LedgerColors.primary.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -165,7 +161,7 @@ class _NavBarItemState extends State<_NavBarItem>
                 size: 22,
                 color: widget.isActive
                     ? LedgerColors.primary
-                    : const Color(0xFF475569), // Darker slate 600 for outdoor legibility
+                    : const Color(0xFF475569),
               ),
             ),
           ],
@@ -176,7 +172,7 @@ class _NavBarItemState extends State<_NavBarItem>
           style: TextStyle(
             color: widget.isActive
                 ? LedgerColors.primary
-                : const Color(0xFF475569), // Darker slate 600 for outdoor legibility
+                : const Color(0xFF475569),
             fontSize: 10,
             fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: -0.2,

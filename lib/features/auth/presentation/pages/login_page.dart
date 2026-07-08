@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,11 +32,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FDF4), // Calming fresh light-green tint
+      backgroundColor: const Color(0xFFF0FDF4),
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Background organic health-themed gradients/shapes
           Positioned(
             top: -120,
             left: -120,
@@ -46,7 +44,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFCCFBF1).withOpacity(0.5), // Soft teal
+                color: const Color(0xFFCCFBF1).withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -58,23 +56,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFD1FAE5).withOpacity(0.6), // Soft emerald
+                color: const Color(0xFFD1FAE5).withValues(alpha: 0.6),
               ),
             ),
           ),
-          
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 380),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Healthcare branding header
                       Center(
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -83,7 +83,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF0F766E).withOpacity(0.08),
+                                color: const Color(
+                                  0xFF0F766E,
+                                ).withValues(alpha: 0.08),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               ),
@@ -95,7 +97,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ),
                           child: const Icon(
                             Icons.health_and_safety_rounded,
-                            color: Color(0xFF0F766E), // Calm Teal 700
+                            color: Color(0xFF0F766E),
                             size: 40,
                           ),
                         ),
@@ -106,7 +108,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A), // Slate 900
+                          color: Color(0xFF0F172A),
                           letterSpacing: -0.5,
                         ),
                         textAlign: TextAlign.center,
@@ -115,7 +117,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       const Text(
                         'Sistem Pemantauan Tumbuh Kembang &\nDeteksi Risiko Stunting Real-Time',
                         style: TextStyle(
-                          color: Color(0xFF475569), // Slate 600
+                          color: Color(0xFF475569),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           height: 1.4,
@@ -124,19 +126,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Premium Healthcare Login Card
                       Container(
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(
-                            color: const Color(0xFFE2E8F0), // Slate 200
+                            color: const Color(0xFFE2E8F0),
                             width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF0F766E).withOpacity(0.04),
+                              color: const Color(
+                                0xFF0F766E,
+                              ).withValues(alpha: 0.04),
                               blurRadius: 24,
                               offset: const Offset(0, 12),
                             ),
@@ -157,7 +160,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ),
                             const SizedBox(height: 24),
 
-                            // NIK / NIP Input Field
                             TextField(
                               key: const Key('nikField'),
                               controller: _nikController,
@@ -184,17 +186,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 fillColor: const Color(0xFFF8FAFC),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: const BorderSide(color: Color(0xFF0F766E), width: 2),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF0F766E),
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Password Input Field
                             TextField(
                               key: const Key('passwordField'),
                               controller: _passwordController,
@@ -222,22 +229,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 fillColor: const Color(0xFFF8FAFC),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: const BorderSide(color: Color(0xFF0F766E), width: 2),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF0F766E),
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
 
-                            // Error Message Display
                             if (auth.error != null) ...[
                               const SizedBox(height: 16),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFEE2E2), // Soft red background
+                                  color: const Color(0xFFFEE2E2),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
                                     color: const Color(0xFFFCA5A5),
@@ -246,13 +261,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 20),
+                                    const Icon(
+                                      Icons.error_outline,
+                                      color: Color(0xFFEF4444),
+                                      size: 20,
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
                                         auth.error!,
                                         style: const TextStyle(
-                                          color: Color(0xFFB91C1C), // Deep red text
+                                          color: Color(0xFFB91C1C),
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
                                         ),
@@ -265,16 +284,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                             const SizedBox(height: 24),
 
-                             // Submit Button
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0F766E), // High contrast Teal 700
+                                backgroundColor: const Color(0xFF0F766E),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                               ),
                               onPressed: auth.isSubmitting ? null : _submit,
                               child: auth.isSubmitting
@@ -300,7 +320,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Footer support info
                       Wrap(
                         alignment: WrapAlignment.center,
                         crossAxisAlignment: WrapCrossAlignment.center,
@@ -309,7 +328,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         children: [
                           Icon(
                             Icons.support_agent_rounded,
-                            color: const Color(0xFF0F766E).withOpacity(0.5),
+                            color: const Color(
+                              0xFF0F766E,
+                            ).withValues(alpha: 0.5),
                             size: 18,
                           ),
                           const Text(
