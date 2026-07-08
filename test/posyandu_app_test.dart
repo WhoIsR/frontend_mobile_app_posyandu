@@ -128,6 +128,9 @@ void main() {
     await tester.tap(find.text('Raka Pratama'));
     await tester.pumpAndSettle();
     expect(find.text('Tren perlu perhatian'), findsOneWidget);
+    expect(find.text('Riwayat BB/TB'), findsOneWidget);
+    expect(find.textContaining('10.2 kg'), findsWidgets);
+    expect(find.textContaining('+0.2 kg'), findsOneWidget);
     expect(
       find.textContaining('Pertumbuhan terakhir melambat'),
       findsOneWidget,
@@ -989,6 +992,22 @@ class FakeKaderRepository implements KaderRepository {
         continuityLabel: 'Tren perlu perhatian',
         continuityMessage:
             'Pertumbuhan terakhir melambat. Pantau ulang dan beri edukasi sebelum jadwal berikutnya.',
+        measurementHistory: [
+          MeasurementHistoryPoint(
+            visitLabel: 'Kunjungan 1',
+            measuredAt: '2026-04-19',
+            weightKg: 10.0,
+            heightCm: 83.8,
+          ),
+          MeasurementHistoryPoint(
+            visitLabel: 'Kunjungan 2',
+            measuredAt: '2026-05-19',
+            weightKg: 10.2,
+            heightCm: 84.5,
+            weightDeltaKg: 0.2,
+            heightDeltaCm: 0.7,
+          ),
+        ],
       ),
     ];
   }

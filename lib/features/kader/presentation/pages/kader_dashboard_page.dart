@@ -1485,6 +1485,15 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                                   height: 1.4,
                                 ),
                               ),
+                              if (widget
+                                  .item
+                                  .measurementHistory
+                                  .isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _MeasurementHistoryList(
+                                  points: widget.item.measurementHistory,
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -1562,6 +1571,159 @@ class _ScreeningRowState extends State<_ScreeningRow> {
       _ =>
         '- Pastikan berat dan tinggi badan sudah benar.\n- Coba ulang saat koneksi lebih stabil.\n- Bila masih gagal, simpan catatan untuk dicek bidan.',
     };
+  }
+}
+
+class _MeasurementHistoryList extends StatelessWidget {
+  const _MeasurementHistoryList({required this.points});
+
+  final List<MeasurementHistoryPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Riwayat BB/TB',
+          style: TextStyle(
+            color: LedgerColors.ink,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final point in points) _MeasurementHistoryTile(point: point),
+      ],
+    );
+  }
+}
+
+class _MeasurementHistoryTile extends StatelessWidget {
+  const _MeasurementHistoryTile({required this.point});
+
+  final MeasurementHistoryPoint point;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: LedgerColors.line),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: LedgerColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.monitor_weight_outlined,
+              size: 18,
+              color: LedgerColors.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${point.visitLabel} - ${point.measuredAt}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    color: LedgerColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _MetricChip(
+                      label: 'BB',
+                      value: '${_num(point.weightKg)} kg',
+                    ),
+                    _MetricChip(
+                      label: 'TB',
+                      value: '${_num(point.heightCm)} cm',
+                    ),
+                    if (point.weightDeltaKg != null)
+                      _MetricChip(
+                        label: 'BB',
+                        value: _delta(point.weightDeltaKg!, 'kg'),
+                        isDelta: true,
+                        negative: point.weightDeltaKg! < 0,
+                      ),
+                    if (point.heightDeltaCm != null)
+                      _MetricChip(
+                        label: 'TB',
+                        value: _delta(point.heightDeltaCm!, 'cm'),
+                        isDelta: true,
+                        negative: point.heightDeltaCm! < 0,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _num(double value) {
+    return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
+  }
+
+  static String _delta(double value, String unit) {
+    final sign = value > 0 ? '+' : '';
+    return '$sign${value.toStringAsFixed(1)} $unit';
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.label,
+    required this.value,
+    this.isDelta = false,
+    this.negative = false,
+  });
+
+  final String label;
+  final String value;
+  final bool isDelta;
+  final bool negative;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = negative ? LedgerColors.review : LedgerColors.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: isDelta
+            ? color.withValues(alpha: 0.1)
+            : LedgerColors.primarySoft.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: isDelta ? color : LedgerColors.ink,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }
 

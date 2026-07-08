@@ -35,9 +35,15 @@ class BalitaModel extends Balita {
       nikBalita: json['nik_balita']?.toString(),
       nikIbu: json['nik_ibu']?.toString(),
       alamat: json['alamat']?.toString(),
-      penghasilan: json['penghasilan'] != null ? _asInt(json['penghasilan']) : null,
-      jumlahKeluarga: json['jumlah_keluarga'] != null ? _asInt(json['jumlah_keluarga']) : null,
-      posyanduId: json['posyandu_id'] != null ? _asInt(json['posyandu_id']) : null,
+      penghasilan: json['penghasilan'] != null
+          ? _asInt(json['penghasilan'])
+          : null,
+      jumlahKeluarga: json['jumlah_keluarga'] != null
+          ? _asInt(json['jumlah_keluarga'])
+          : null,
+      posyanduId: json['posyandu_id'] != null
+          ? _asInt(json['posyandu_id'])
+          : null,
     );
   }
 }
@@ -74,7 +80,8 @@ class MeasurementResultModel extends MeasurementResult {
     return MeasurementResultModel(
       id: _asInt(json['id']),
       predictionStatus: json['status_prediksi']?.toString() ?? 'menunggu',
-      riskLevel: json['overall_risk_level']?.toString() ??
+      riskLevel:
+          json['overall_risk_level']?.toString() ??
           json['risk_level']?.toString() ??
           (prediction is Map ? prediction['risk_level']?.toString() : null),
       continuityMessage: continuity is Map
@@ -92,6 +99,7 @@ class ScreeningItemModel extends ScreeningItem {
     super.riskLevel,
     super.continuityLabel,
     super.continuityMessage,
+    super.measurementHistory,
   });
 
   factory ScreeningItemModel.fromJson(Map<String, dynamic> json) {
@@ -100,7 +108,8 @@ class ScreeningItemModel extends ScreeningItem {
       id: _asInt(json['id']),
       namaBalita: json['nama_balita']?.toString() ?? '-',
       predictionStatus: json['status_prediksi']?.toString() ?? 'menunggu',
-      riskLevel: json['overall_risk_level']?.toString() ??
+      riskLevel:
+          json['overall_risk_level']?.toString() ??
           json['risk_level']?.toString(),
       continuityLabel: continuity is Map
           ? continuity['label']?.toString()
@@ -108,6 +117,9 @@ class ScreeningItemModel extends ScreeningItem {
       continuityMessage: continuity is Map
           ? continuity['message']?.toString()
           : null,
+      measurementHistory: continuity is Map
+          ? _historyPoints(continuity['measurements'])
+          : const [],
     );
   }
 }
@@ -140,6 +152,23 @@ List<Map<String, dynamic>> paginatedRows(Map<String, dynamic> json) {
       .whereType<Map>()
       .map((row) => row.cast<String, dynamic>())
       .toList();
+}
+
+List<MeasurementHistoryPoint> _historyPoints(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((row) {
+        return MeasurementHistoryPoint(
+          visitLabel: row['visit_label']?.toString() ?? 'Kunjungan',
+          measuredAt: row['tanggal_ukur']?.toString() ?? '-',
+          weightKg: _asDouble(row['berat_badan']) ?? 0,
+          heightCm: _asDouble(row['tinggi_badan']) ?? 0,
+          weightDeltaKg: _asDouble(row['weight_delta_kg']),
+          heightDeltaCm: _asDouble(row['height_delta_cm']),
+        );
+      })
+      .toList(growable: false);
 }
 
 int _asInt(Object? value) {
