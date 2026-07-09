@@ -39,10 +39,27 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
     if (state.isLoading) return const LoadingPanel();
     final data = state.data;
     final sections = _sections(context, state, data);
-    return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(bidanDashboardControllerProvider.notifier).load(),
-      child: ListView(padding: const EdgeInsets.all(16), children: sections),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE0F2FE), // Light sky blue glow
+            Color(0xFFF1F5F9), // Slate 100 base
+            Color(0xFFF1F5F9), // Slate 100 base
+          ],
+          stops: [0.0, 0.20, 1.0],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: () =>
+            ref.read(bidanDashboardControllerProvider.notifier).load(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+          children: sections,
+        ),
+      ),
     );
   }
 

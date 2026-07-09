@@ -42,15 +42,32 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       'laporan' => _reports(context, ref, state),
       _ => _home(context, ref, state),
     };
-    return RefreshIndicator(
-      onRefresh: () async {
-        setState(() {
-          _accountSearchQuery = '';
-          _posyanduSearchQuery = '';
-        });
-        await ref.read(adminDashboardControllerProvider.notifier).load();
-      },
-      child: ListView(padding: const EdgeInsets.all(16), children: sections),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE0F2FE), // Light sky blue glow
+            Color(0xFFF1F5F9), // Slate 100 base
+            Color(0xFFF1F5F9), // Slate 100 base
+          ],
+          stops: [0.0, 0.20, 1.0],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _accountSearchQuery = '';
+            _posyanduSearchQuery = '';
+          });
+          await ref.read(adminDashboardControllerProvider.notifier).load();
+        },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+          children: sections,
+        ),
+      ),
     );
   }
 
