@@ -82,10 +82,6 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                               ? 'Notifikasi Kader'
                               : 'Notifikasi Bidan',
                         ),
-                        bottom: const PreferredSize(
-                          preferredSize: Size.fromHeight(1),
-                          child: Divider(height: 1, color: AppColors.divider),
-                        ),
                       ),
                       body: SafeArea(
                         child: widget.user.role == UserRole.kader
@@ -136,10 +132,6 @@ class _RoleShellState extends ConsumerState<RoleShell> {
             ),
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.divider),
-        ),
       ),
       bottomNavigationBar: FloatingGlassNavigationBar(
         selectedIndex: _index,

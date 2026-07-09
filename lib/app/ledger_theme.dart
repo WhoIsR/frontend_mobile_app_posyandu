@@ -30,7 +30,7 @@ class LedgerTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: LedgerColors.paper,
       visualDensity: VisualDensity.standard,
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(
+      textTheme: GoogleFonts.outfitTextTheme(
         const TextTheme(
           headlineSmall: TextStyle(
             fontSize: 28,
@@ -67,6 +67,11 @@ class LedgerTheme {
           color: LedgerColors.ink,
           fontSize: 22,
           fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(24),
+          ),
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
