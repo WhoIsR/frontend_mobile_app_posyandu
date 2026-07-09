@@ -46,16 +46,16 @@ class FloatingGlassNavigationBar extends StatelessWidget {
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.85), // Frosted Slate 900 dock
+              color: Colors.white.withValues(alpha: 0.75), // Light Frosted Glass Dock
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08), // Thin glowing border
-                width: 1.0,
+                color: Colors.white.withValues(alpha: 0.5), // Inner light glow border
+                width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
-                  blurRadius: 25,
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.06), // Soft ambient shadow
+                  blurRadius: 24,
                   offset: const Offset(0, 8),
                 ),
               ],
@@ -150,7 +150,7 @@ class _NavBarItemState extends State<_NavBarItem>
               width: widget.isActive ? 46 : 0,
               height: widget.isActive ? 28 : 0,
               decoration: BoxDecoration(
-                color: const Color(0xFF0F766E), // Solid primary dark teal capsule
+                color: const Color(0xFF0F766E).withValues(alpha: 0.12), // Soft 12% teal wash capsule
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -160,8 +160,8 @@ class _NavBarItemState extends State<_NavBarItem>
                 widget.isActive ? widget.item.activeIcon : widget.item.icon,
                 size: 22,
                 color: widget.isActive
-                    ? Colors.white // White icon on dark teal capsule
-                    : const Color(0xFF94A3B8), // Slate 400 for inactive
+                    ? const Color(0xFF0F766E) // Dark teal icon on soft wash
+                    : const Color(0xFF64748B), // Slate 500 for inactive
               ),
             ),
           ],
@@ -171,8 +171,8 @@ class _NavBarItemState extends State<_NavBarItem>
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
             color: widget.isActive
-                ? const Color(0xFF2DD4BF) // Mint/teal active text
-                : const Color(0xFF94A3B8), // Slate 400 for inactive
+                ? const Color(0xFF0F766E) // Dark teal active text (no neon)
+                : const Color(0xFF64748B), // Slate 500 for inactive
             fontSize: 10,
             fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: -0.2,
