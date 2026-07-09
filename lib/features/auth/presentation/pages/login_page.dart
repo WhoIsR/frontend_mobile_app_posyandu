@@ -104,7 +104,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                       const SizedBox(height: 18),
                       const Text(
-                        'Posyandu Cerdas',
+                        'Posyandu',
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
