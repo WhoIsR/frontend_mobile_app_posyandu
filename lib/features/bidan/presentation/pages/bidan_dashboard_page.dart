@@ -126,7 +126,7 @@ class _BidanDashboardPageState extends ConsumerState<BidanDashboardPage> {
       ),
       LedgerListRow(
         title: 'Notifikasi',
-        subtitle: '$notifications pesan untuk bidan.',
+        subtitle: '$notifications pesan masuk.',
         onTap: () => widget.onNavigate?.call('notifikasi'),
       ),
     ];

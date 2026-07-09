@@ -152,7 +152,7 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
       ),
       LedgerListRow(
         title: 'Notifikasi',
-        subtitle: '$notificationCount pesan untuk kader.',
+        subtitle: '$notificationCount pesan masuk.',
         trailing: const Icon(Icons.arrow_forward),
         onTap: () => widget.onNavigate?.call('notifikasi'),
       ),
