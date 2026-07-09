@@ -47,13 +47,27 @@ class _KaderDashboardPageState extends ConsumerState<KaderDashboardPage> {
         : data!.children.first;
     final selectedChild = state.selectedChild ?? firstChild;
     final sections = _sections(context, state, data, selectedChild);
-    return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(kaderDashboardControllerProvider.notifier).load(),
-      child: ListView(
-        key: const Key('kaderList'),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
-        children: sections,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE0F2FE), // Light sky blue glow
+            Color(0xFFF1F5F9), // Slate 100 base
+            Color(0xFFF1F5F9), // Slate 100 base
+          ],
+          stops: [0.0, 0.20, 1.0],
+        ),
+      ),
+      child: RefreshIndicator(
+        onRefresh: () =>
+            ref.read(kaderDashboardControllerProvider.notifier).load(),
+        child: ListView(
+          key: const Key('kaderList'),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
+          children: sections,
+        ),
       ),
     );
   }
