@@ -32,34 +32,46 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final auth = ref.watch(authControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FDF4),
       resizeToAvoidBottomInset: true,
-      body: Stack(
-        children: [
-          Positioned(
-            top: -120,
-            left: -120,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFCCFBF1).withValues(alpha: 0.5),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFE0F2FE), // Light sky blue glow
+              Color(0xFFF8FAFC), // Slate 50
+              Color(0xFFF1F5F9), // Slate 100
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -120,
+              left: -120,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF93C5FD).withValues(alpha: 0.3), // Soft blue glow circle
+                ),
               ),
             ),
-          ),
-          Positioned(
-            bottom: -150,
-            right: -100,
-            child: Container(
-              width: 350,
-              height: 350,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFD1FAE5).withValues(alpha: 0.6),
+            Positioned(
+              bottom: -150,
+              right: -100,
+              child: Container(
+                width: 350,
+                height: 350,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF99F6E4).withValues(alpha: 0.4), // Soft teal glow circle
+                ),
               ),
             ),
-          ),
 
           SafeArea(
             child: Center(
@@ -351,6 +363,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
