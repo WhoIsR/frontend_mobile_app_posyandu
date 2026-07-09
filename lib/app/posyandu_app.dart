@@ -25,7 +25,7 @@ class PosyanduApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Posyandu Desa',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: LedgerTheme.light(),
       home: auth.isBooting
           ? const _BootScreen()
           : auth.user == null
@@ -125,7 +125,7 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                 color: LedgerColors.primarySoft,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: LedgerColors.primary.withValues(alpha: 0.2),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),

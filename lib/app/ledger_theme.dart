@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme/app_colors.dart';
@@ -58,15 +59,21 @@ class LedgerTheme {
             error: LedgerColors.review,
           ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: LedgerColors.surface,
-        foregroundColor: LedgerColors.ink,
-        elevation: 0,
+        backgroundColor: Color(0xFF0F766E), // Premium dark teal header background
+        foregroundColor: Colors.white, // White icons/action text
+        elevation: 4,
         centerTitle: false,
-        surfaceTintColor: LedgerColors.primarySoft,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Color(0x29000000), // Subtle shadow
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         titleTextStyle: TextStyle(
-          color: LedgerColors.ink,
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
+          color: Colors.white, // White title text
+          fontSize: 20,
+          fontWeight: FontWeight.w900,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(

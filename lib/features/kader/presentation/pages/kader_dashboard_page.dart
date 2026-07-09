@@ -1374,17 +1374,6 @@ class _ScreeningRowState extends State<_ScreeningRow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 48,
-                      height: 5,
-                      margin: const EdgeInsets.only(bottom: 22),
-                      decoration: const BoxDecoration(
-                        color: LedgerColors.inkMuted,
-                        borderRadius: BorderRadius.all(Radius.circular(10)),
-                      ),
-                    ),
-                  ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1657,7 +1646,7 @@ class _MeasurementHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: LedgerColors.surface,
         borderRadius: BorderRadius.circular(12),
@@ -1680,7 +1669,7 @@ class _MeasurementHistoryTile extends StatelessWidget {
               color: LedgerColors.primary,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1693,33 +1682,81 @@ class _MeasurementHistoryTile extends StatelessWidget {
                     color: LedgerColors.ink,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    _MetricChip(
-                      label: 'BB',
-                      value: '${_num(point.weightKg)} kg',
-                    ),
-                    _MetricChip(
-                      label: 'TB',
-                      value: '${_num(point.heightCm)} cm',
-                    ),
-                    if (point.weightDeltaKg != null)
-                      _MetricChip(
-                        label: 'BB',
-                        value: _delta(point.weightDeltaKg!, 'kg'),
-                        isDelta: true,
-                        negative: point.weightDeltaKg! < 0,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Berat Badan (BB)',
+                            style: TextStyle(
+                              color: LedgerColors.inkSoft,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${_num(point.weightKg)} kg',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: LedgerColors.ink,
+                                ),
+                              ),
+                              if (point.weightDeltaKg != null && point.weightDeltaKg != 0) ...[
+                                const SizedBox(width: 4),
+                                _CompactDeltaChip(
+                                  value: point.weightDeltaKg!,
+                                  unit: 'kg',
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
-                    if (point.heightDeltaCm != null)
-                      _MetricChip(
-                        label: 'TB',
-                        value: _delta(point.heightDeltaCm!, 'cm'),
-                        isDelta: true,
-                        negative: point.heightDeltaCm! < 0,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Tinggi Badan (TB)',
+                            style: TextStyle(
+                              color: LedgerColors.inkSoft,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${_num(point.heightCm)} cm',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: LedgerColors.ink,
+                                ),
+                              ),
+                              if (point.heightDeltaCm != null && point.heightDeltaCm != 0) ...[
+                                const SizedBox(width: 4),
+                                _CompactDeltaChip(
+                                  value: point.heightDeltaCm!,
+                                  unit: 'cm',
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
               ],
@@ -1733,42 +1770,36 @@ class _MeasurementHistoryTile extends StatelessWidget {
   static String _num(double value) {
     return value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1);
   }
-
-  static String _delta(double value, String unit) {
-    final sign = value > 0 ? '+' : '';
-    return '$sign${value.toStringAsFixed(1)} $unit';
-  }
 }
 
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({
-    required this.label,
+class _CompactDeltaChip extends StatelessWidget {
+  const _CompactDeltaChip({
     required this.value,
-    this.isDelta = false,
-    this.negative = false,
+    required this.unit,
   });
 
-  final String label;
-  final String value;
-  final bool isDelta;
-  final bool negative;
+  final double value;
+  final String unit;
 
   @override
   Widget build(BuildContext context) {
-    final color = negative ? LedgerColors.review : LedgerColors.primary;
+    if (value == 0) return const SizedBox.shrink();
+    final isNegative = value < 0;
+    final sign = value > 0 ? '+' : '';
+    final color = isNegative ? LedgerColors.review : const Color(0xFF0F766E);
+    final bgColor = isNegative ? LedgerColors.reviewSoft.withValues(alpha: 0.8) : const Color(0xFFE6F4F1);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
       decoration: BoxDecoration(
-        color: isDelta
-            ? color.withValues(alpha: 0.1)
-            : LedgerColors.primarySoft.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(999),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        '$label $value',
+        '$sign${value.toStringAsFixed(1)} $unit',
         style: TextStyle(
-          color: isDelta ? color : LedgerColors.ink,
-          fontSize: 11,
+          color: color,
+          fontSize: 9,
           fontWeight: FontWeight.w800,
         ),
       ),

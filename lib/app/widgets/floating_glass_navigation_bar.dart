@@ -46,17 +46,17 @@ class FloatingGlassNavigationBar extends StatelessWidget {
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.96),
+              color: const Color(0xFF0F172A), // Premium Slate 900 dock background
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: const Color(0xFF0F766E).withValues(alpha: 0.3),
+                color: const Color(0xFF0F766E).withValues(alpha: 0.4), // Contrast border
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0F172A).withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
@@ -144,13 +144,13 @@ class _NavBarItemState extends State<_NavBarItem>
         Stack(
           alignment: Alignment.center,
           children: [
-            AnimatedContainer(
+             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
               width: widget.isActive ? 46 : 0,
               height: widget.isActive ? 28 : 0,
               decoration: BoxDecoration(
-                color: LedgerColors.primary.withValues(alpha: 0.18),
+                color: const Color(0xFF0F766E), // Solid primary dark teal capsule
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -160,8 +160,8 @@ class _NavBarItemState extends State<_NavBarItem>
                 widget.isActive ? widget.item.activeIcon : widget.item.icon,
                 size: 22,
                 color: widget.isActive
-                    ? LedgerColors.primary
-                    : const Color(0xFF475569),
+                    ? Colors.white // White icon on dark teal capsule
+                    : const Color(0xFF94A3B8), // Slate 400 for inactive
               ),
             ),
           ],
@@ -171,8 +171,8 @@ class _NavBarItemState extends State<_NavBarItem>
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
             color: widget.isActive
-                ? LedgerColors.primary
-                : const Color(0xFF475569),
+                ? const Color(0xFF2DD4BF) // Mint/teal active text
+                : const Color(0xFF94A3B8), // Slate 400 for inactive
             fontSize: 10,
             fontWeight: widget.isActive ? FontWeight.w800 : FontWeight.w600,
             letterSpacing: -0.2,
