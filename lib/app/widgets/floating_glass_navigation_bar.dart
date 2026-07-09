@@ -44,7 +44,7 @@ class FloatingGlassNavigationBar extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
           child: Container(
-            height: 70,
+            height: 80,
             decoration: BoxDecoration(
               color: const Color(0xFF0F172A).withValues(alpha: 0.85), // Frosted Slate 900 dock
               borderRadius: BorderRadius.circular(32),
@@ -147,11 +147,11 @@ class _NavBarItemState extends State<_NavBarItem>
              AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
-              width: widget.isActive ? 46 : 0,
-              height: widget.isActive ? 28 : 0,
+              width: widget.isActive ? 54 : 0,
+              height: widget.isActive ? 32 : 0,
               decoration: BoxDecoration(
                 color: const Color(0xFF0F766E), // Solid primary dark teal capsule
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
               ),
             ),
             ScaleTransition(
