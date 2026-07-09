@@ -66,6 +66,11 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       extendBody: true,
       appBar: AppBar(
         title: Text(title),
+        elevation: 4,
+        shadowColor: const Color(0xFF0F172A).withOpacity(0.08),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         actions: [
           if (widget.user.role == UserRole.kader ||
               widget.user.role == UserRole.bidan)
@@ -81,6 +86,11 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                           widget.user.role == UserRole.kader
                               ? 'Notifikasi Kader'
                               : 'Notifikasi Bidan',
+                        ),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF0F172A).withOpacity(0.08),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
                         ),
                       ),
                       body: SafeArea(
