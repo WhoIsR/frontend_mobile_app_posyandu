@@ -1343,10 +1343,7 @@ class _ScreeningRow extends StatefulWidget {
 }
 
 class _ScreeningRowState extends State<_ScreeningRow> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
+  void _showScreeningDetailsBottomSheet(BuildContext context) {
     final risk = widget.item.predictionStatus == 'gagal'
         ? 'gagal'
         : widget.item.riskLevel;
@@ -1354,105 +1351,76 @@ class _ScreeningRowState extends State<_ScreeningRow> {
     final primaryColor = riskColorsTuple.$1;
     final softColor = riskColorsTuple.$2;
     final historyLabel = widget.item.continuityLabel ?? 'Riwayat pengukuran';
-    final historyMessage =
-        widget.item.continuityMessage ??
+    final historyMessage = widget.item.continuityMessage ??
         'Riwayatnya belum cukup untuk membaca tren. Catatan hari ini tetap tersimpan dan bisa jadi pembanding pada kunjungan berikutnya.';
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: LedgerColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: _expanded ? primaryColor : LedgerColors.line,
-          width: _expanded ? 1.5 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (_expanded ? primaryColor : LedgerColors.primary).withValues(
-              alpha: _expanded ? 0.08 : 0.04,
-            ),
-            blurRadius: _expanded ? 20 : 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: () {
-              setState(() {
-                _expanded = !_expanded;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 132),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                widget.item.namaBalita,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            RiskBadge(risk: risk),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          RiskCopy.message(risk),
-                          style: const TextStyle(
-                            color: LedgerColors.inkSoft,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Icon(
-                    _expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    color: LedgerColors.inkMuted,
-                    size: 22,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_expanded) ...[
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.45,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Divider(color: LedgerColors.line, height: 1),
+                  Center(
+                    child: Container(
+                      width: 48,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 22),
+                      decoration: const BoxDecoration(
+                        color: LedgerColors.inkMuted,
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.item.namaBalita,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                            color: LedgerColors.ink,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      RiskBadge(risk: risk),
+                    ],
+                  ),
                   const SizedBox(height: 12),
+                  Text(
+                    RiskCopy.message(risk),
+                    style: const TextStyle(
+                      color: LedgerColors.inkSoft,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(color: LedgerColors.line, height: 1),
+                  const SizedBox(height: 20),
+                  
+                  // History Section
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: LedgerColors.paper,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: LedgerColors.line),
                     ),
                     child: Row(
@@ -1461,9 +1429,9 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                         const Icon(
                           Icons.timeline_outlined,
                           color: LedgerColors.primary,
-                          size: 20,
+                          size: 22,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1473,10 +1441,10 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: LedgerColors.ink,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
                               Text(
                                 historyMessage,
                                 style: const TextStyle(
@@ -1485,11 +1453,8 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                                   height: 1.4,
                                 ),
                               ),
-                              if (widget
-                                  .item
-                                  .measurementHistory
-                                  .isNotEmpty) ...[
-                                const SizedBox(height: 12),
+                              if (widget.item.measurementHistory.isNotEmpty) ...[
+                                const SizedBox(height: 16),
                                 _MeasurementHistoryList(
                                   points: widget.item.measurementHistory,
                                 ),
@@ -1500,21 +1465,23 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
+                  
+                  // Recommendations Section ("Catatan")
                   const Text(
-                    'Arahan untuk kader:',
+                    'Catatan:',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       color: LedgerColors.ink,
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: softColor.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: primaryColor.withValues(alpha: 0.2),
                       ),
@@ -1525,15 +1492,15 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                         Icon(
                           _counselingIcon(risk),
                           color: primaryColor,
-                          size: 20,
+                          size: 22,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             _counselingText(risk),
                             style: TextStyle(
                               color: primaryColor.withValues(alpha: 0.95),
-                              fontSize: 12,
+                              fontSize: 13,
                               height: 1.45,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1544,9 +1511,91 @@ class _ScreeningRowState extends State<_ScreeningRow> {
                   ),
                 ],
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final risk = widget.item.predictionStatus == 'gagal'
+        ? 'gagal'
+        : widget.item.riskLevel;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: LedgerColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: LedgerColors.line,
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: LedgerColors.primary.withValues(
+              alpha: 0.04,
             ),
-          ],
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => _showScreeningDetailsBottomSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.item.namaBalita,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        RiskBadge(risk: risk),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      RiskCopy.message(risk),
+                      style: const TextStyle(
+                        color: LedgerColors.inkSoft,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: LedgerColors.inkMuted,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -228,6 +228,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tren perlu perhatian'), findsOneWidget);
 
+    // Close details bottom sheet
+    Navigator.of(tester.element(find.text('Tren perlu perhatian'))).pop();
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Notifikasi').last);
     await tester.pumpAndSettle();
     expect(find.text('Validasi selesai'), findsOneWidget);
