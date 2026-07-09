@@ -31,7 +31,7 @@ class LedgerTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: LedgerColors.paper,
       visualDensity: VisualDensity.standard,
-      textTheme: GoogleFonts.outfitTextTheme(
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(
         const TextTheme(
           headlineSmall: TextStyle(
             fontSize: 28,
