@@ -66,24 +66,6 @@ class _RoleShellState extends ConsumerState<RoleShell> {
       extendBody: true,
       appBar: AppBar(
         title: Text(title),
-        elevation: 4,
-        shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.08),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF0F766E),
-                Color(0xFF0D9488),
-                Color(0xFF14B8A6),
-              ],
-            ),
-          ),
-        ),
         actions: [
           if (widget.user.role == UserRole.kader ||
               widget.user.role == UserRole.bidan)
@@ -99,24 +81,6 @@ class _RoleShellState extends ConsumerState<RoleShell> {
                           widget.user.role == UserRole.kader
                               ? 'Notifikasi Kader'
                               : 'Notifikasi Bidan',
-                        ),
-                        elevation: 4,
-                        shadowColor: const Color(0xFF0F172A).withValues(alpha: 0.08),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-                        ),
-                        flexibleSpace: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF0F766E),
-                                Color(0xFF0D9488),
-                                Color(0xFF14B8A6),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                       body: SafeArea(
