@@ -42,20 +42,20 @@ class FloatingGlassNavigationBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
           child: Container(
             height: 70,
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A), // Premium Slate 900 dock background
+              color: const Color(0xFF0F172A).withValues(alpha: 0.85), // Frosted Slate 900 dock
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: const Color(0xFF0F766E).withValues(alpha: 0.4), // Contrast border
-                width: 1.5,
+                color: Colors.white.withValues(alpha: 0.08), // Thin glowing border
+                width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.16),
-                  blurRadius: 24,
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 25,
                   offset: const Offset(0, 8),
                 ),
               ],
