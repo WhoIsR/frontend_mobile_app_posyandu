@@ -1,0 +1,314 @@
+{
+  "project_info": {
+    "project_number": "744293814908",
+    "project_id": "myappmobile-8a3c1",
+    "storage_bucket": "myappmobile-8a3c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:9245d4b5dc25e0b0f4eff9",
+        "android_client_info": {
+          "package_name": "com.example.collab_mobile_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:c1fce3f6312c86cdf4eff9",
+        "android_client_info": {
+          "package_name": "com.example.dompet_kampus_global"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-f0nkvl4j6rvo9t0lbp75bsductr9aud2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dompet_kampus_global",
+            "certificate_hash": "e86dc6d302712ee03b8e00d40242008edde4637e"
+          }
+        },
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:9111fcbe1b2738fff4eff9",
+        "android_client_info": {
+          "package_name": "com.example.fashion_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-c2vg0ha1li68nitb0nl5kj4u99ibd0bu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fashion_app",
+            "certificate_hash": "e86dc6d302712ee03b8e00d40242008edde4637e"
+          }
+        },
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:54cd23e59d60a438f4eff9",
+        "android_client_info": {
+          "package_name": "com.example.flutter_firebase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:6c5a7144c4fe7644f4eff9",
+        "android_client_info": {
+          "package_name": "com.example.flutter_latihan"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:453008472ece832af4eff9",
+        "android_client_info": {
+          "package_name": "com.example.latihan_flutter_firebase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:6ba07cceb330cd06f4eff9",
+        "android_client_info": {
+          "package_name": "com.example.uas_test"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:744293814908:android:3c2d50a7e1d9a831f4eff9",
+        "android_client_info": {
+          "package_name": "com.whoisr.posyandu_ml"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3uy8Eq_LuUVRBGzSiDzkzaU-Sd2IV3HI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "744293814908-ur086paso7ukabh6miepeva1bsqojsop.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "744293814908-0qkcife5cb9qqt66qmkq1f90v9vmvk59.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.collabMobileApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

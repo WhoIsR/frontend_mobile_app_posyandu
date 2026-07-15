@@ -52,7 +52,6 @@ app.*.map.json
 
 # Local Firebase/generated files
 android/app/firebase-service-account.json
-android/app/google-services.json
 android/build/
 firebase.json
 devtools_options.yaml

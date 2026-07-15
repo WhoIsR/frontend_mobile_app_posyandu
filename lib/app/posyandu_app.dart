@@ -9,7 +9,6 @@ import '../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../features/bidan/presentation/pages/bidan_dashboard_page.dart';
 import '../features/kader/presentation/pages/kader_dashboard_page.dart';
 import '../shared/widgets/ledger_widgets.dart';
-import '../core/theme/app_theme.dart';
 import '../core/theme/app_colors.dart';
 import 'widgets/floating_glass_navigation_bar.dart';
 import 'ledger_theme.dart';

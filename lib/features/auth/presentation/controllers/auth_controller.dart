@@ -57,7 +57,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> login(String nikNip, String password) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
-    ref.read(analyticsServiceProvider).logEvent('login_started', properties: {'nik_nip': nikNip});
+    ref.read(analyticsServiceProvider).logEvent('login_started');
     try {
       final session = await ref.read(loginUseCaseProvider)(nikNip, password);
       state = AuthState(

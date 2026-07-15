@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../ledger_theme.dart';
 
 class FloatingGlassNavDestination {
   final IconData icon;
